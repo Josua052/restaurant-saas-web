@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, UserPlus, Settings, HelpCircle, Plus } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  UserPlus,
+  Settings,
+  HelpCircle,
+  Plus,
+} from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 
 const navItems = [
@@ -34,14 +41,6 @@ export function Sidebar() {
             <p className="text-xs text-slate-500">Enterprise Suite</p>
           </div>
         </div>
-      </div>
-
-      {/* New Tenant Button */}
-      <div className="px-4 pb-6">
-        <Link href="/dashboard/tenants/new" className={buttonVariants({ variant: "default", className: "w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-white h-11 lg:h-10" })}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Tenant
-        </Link>
       </div>
 
       {/* Main Navigation */}

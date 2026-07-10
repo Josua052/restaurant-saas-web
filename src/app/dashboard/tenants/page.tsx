@@ -33,9 +33,9 @@ import tenantsData from "@/data/mock-tenants.json";
 export default function TenantsPage() {
   // We can simulate having active/trial tabs by just rendering the table inside the TabsContent
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="shrink-0 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[22px] leading-7 md:text-2xl md:leading-8 lg:text-3xl lg:leading-9 font-bold text-slate-900 font-heading">
             Tenants
@@ -61,7 +61,7 @@ export default function TenantsPage() {
       </div>
 
       {/* Search Bar - inside page as requested */}
-      <div className="flex items-center">
+      <div className="shrink-0 flex items-center">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
@@ -73,9 +73,9 @@ export default function TenantsPage() {
       </div>
 
       {/* Data Container with Tabs */}
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-        <Tabs defaultValue="all" className="w-full">
-          <div className="px-6 border-b border-slate-200">
+      <div className="flex-1 flex flex-col min-h-0 bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+        <Tabs defaultValue="all" className="flex flex-col h-full w-full">
+          <div className="shrink-0 px-6 border-b border-slate-200">
             <TabsList className="bg-transparent h-14 p-0 space-x-6">
               <TabsTrigger 
                 value="all" 
@@ -105,7 +105,7 @@ export default function TenantsPage() {
             </TabsList>
           </div>
 
-          <TabsContent value="all" className="p-0 m-0 outline-none">
+          <TabsContent value="all" className="flex-1 overflow-y-auto p-0 m-0 outline-none">
             {/* Desktop Table View */}
             <div className="hidden md:block">
               <Table>
@@ -167,15 +167,13 @@ export default function TenantsPage() {
                       <TableCell className="text-slate-500 tabular-nums py-4 text-sm relative z-10 pointer-events-none">{tenant.registeredDate}</TableCell>
                       <TableCell className="text-right py-4 relative z-10">
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600 focus-visible:ring-indigo-500">
-                              <MoreVertical className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
+                          <DropdownMenuTrigger className={buttonVariants({ variant: "ghost", size: "icon", className: "h-8 w-8 text-slate-400 hover:text-slate-600 focus-visible:ring-indigo-500" })}>
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/dashboard/tenants/${tenant.id}`}>View Details</Link>
+                            <DropdownMenuItem render={<Link href={`/dashboard/tenants/${tenant.id}`} />}>
+                              View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem>Edit Tenant</DropdownMenuItem>
                             {tenant.status !== "Suspended" ? (
@@ -249,10 +247,11 @@ export default function TenantsPage() {
                 </div>
               ))}
             </div>
-            
-            {/* Pagination Footer */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200">
-              <div className="hidden sm:block text-sm text-slate-500">
+          </TabsContent>
+          
+          {/* Pagination Footer */}
+          <div className="shrink-0 flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white">
+            <div className="hidden sm:block text-sm text-slate-500">
                 Showing <span className="font-medium text-slate-900">1</span> to <span className="font-medium text-slate-900">10</span> of <span className="font-medium text-slate-900">142</span> results
               </div>
               <Pagination className="w-auto mx-0 sm:ml-auto">
@@ -280,8 +279,7 @@ export default function TenantsPage() {
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
-            </div>
-          </TabsContent>
+          </div>
         </Tabs>
       </div>
     </div>
