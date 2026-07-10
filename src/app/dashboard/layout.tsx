@@ -22,7 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen w-full overflow-hidden bg-slate-50">
       {/* Desktop Sidebar (hidden on mobile) */}
-      <div className="hidden lg:block shrink-0">
+      <div className="hidden lg:block shrink-0 w-60">
         <Sidebar />
       </div>
 

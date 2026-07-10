@@ -20,7 +20,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-full w-60 flex-col border-r border-slate-200 bg-white">
+    <div className="flex h-full w-full flex-col border-r border-slate-200 bg-white">
       {/* Logo & Header */}
       <div className="p-6 pb-4">
         <div className="flex items-center gap-3">
@@ -38,7 +38,7 @@ export function Sidebar() {
 
       {/* New Tenant Button */}
       <div className="px-4 pb-6">
-        <Link href="/dashboard/tenants/new" className={buttonVariants({ variant: "default", className: "w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-white" })}>
+        <Link href="/dashboard/tenants/new" className={buttonVariants({ variant: "default", className: "w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-white h-11 lg:h-10" })}>
           <Plus className="mr-2 h-4 w-4" />
           New Tenant
         </Link>
@@ -52,7 +52,7 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-md px-3 py-2.5 lg:py-2 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-indigo-50 text-indigo-600"
                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
@@ -76,7 +76,7 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+              className="flex items-center gap-3 rounded-md px-3 py-2.5 lg:py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
             >
               <item.icon className="h-4 w-4 shrink-0 text-slate-400" />
               {item.name}

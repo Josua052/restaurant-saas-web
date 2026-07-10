@@ -1,42 +1,65 @@
 [
   {
     "id": "t_001",
-    "restaurantName": "Bistro Bella",
-    "owner": "Sarah Jenkins",
+    "restaurantName": "Gusto Group",
+    "owner": "Elena Rossi",
+    "ownerInitials": "ER",
     "status": "Active",
-    "registeredDate": "Oct 24, 2023",
-    "plan": "Pro"
+    "plan": "Enterprise",
+    "registeredDate": "Oct 12, 2022"
   },
   {
     "id": "t_002",
-    "restaurantName": "Urban Crust",
-    "owner": "Michael Chen",
+    "restaurantName": "Bistro 99",
+    "owner": "James Chen",
+    "ownerInitials": "JC",
     "status": "Trial",
-    "registeredDate": "Oct 22, 2023",
-    "plan": "Basic"
+    "plan": "Pro",
+    "registeredDate": "Mar 05, 2024"
   },
   {
     "id": "t_003",
-    "restaurantName": "El Camino Tapas",
-    "owner": "David Rodriguez",
+    "restaurantName": "Café Noir",
+    "owner": "Sarah Jenkins",
+    "ownerInitials": "SJ",
     "status": "Active",
-    "registeredDate": "Oct 18, 2023",
-    "plan": "Pro"
+    "plan": "Basic",
+    "registeredDate": "Jan 18, 2023"
   },
   {
     "id": "t_004",
-    "restaurantName": "Noodle House",
-    "owner": "Kenji Sato",
+    "restaurantName": "Slice Co.",
+    "owner": "Marcus Dunn",
+    "ownerInitials": "MD",
     "status": "Suspended",
-    "registeredDate": "Oct 15, 2023",
-    "plan": "Basic"
+    "plan": "Pro",
+    "registeredDate": "Nov 30, 2021"
   },
   {
     "id": "t_005",
+    "restaurantName": "El Camino Tapas",
+    "owner": "David Rodriguez",
+    "ownerInitials": "DR",
+    "status": "Active",
+    "plan": "Pro",
+    "registeredDate": "Oct 18, 2023"
+  },
+  {
+    "id": "t_006",
+    "restaurantName": "Noodle House",
+    "owner": "Kenji Sato",
+    "ownerInitials": "KS",
+    "status": "Suspended",
+    "plan": "Basic",
+    "registeredDate": "Oct 15, 2023"
+  },
+  {
+    "id": "t_007",
     "restaurantName": "Morning Crumb",
     "owner": "Alice Dubois",
+    "ownerInitials": "AD",
     "status": "Active",
-    "registeredDate": "Oct 12, 2023",
-    "plan": "Pro"
+    "plan": "Basic",
+    "registeredDate": "Oct 12, 2023"
   }
 ]
