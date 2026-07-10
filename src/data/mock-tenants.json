@@ -1,0 +1,42 @@
+[
+  {
+    "id": "t_001",
+    "restaurantName": "Bistro Bella",
+    "owner": "Sarah Jenkins",
+    "status": "Active",
+    "registeredDate": "Oct 24, 2023",
+    "plan": "Pro"
+  },
+  {
+    "id": "t_002",
+    "restaurantName": "Urban Crust",
+    "owner": "Michael Chen",
+    "status": "Trial",
+    "registeredDate": "Oct 22, 2023",
+    "plan": "Basic"
+  },
+  {
+    "id": "t_003",
+    "restaurantName": "El Camino Tapas",
+    "owner": "David Rodriguez",
+    "status": "Active",
+    "registeredDate": "Oct 18, 2023",
+    "plan": "Pro"
+  },
+  {
+    "id": "t_004",
+    "restaurantName": "Noodle House",
+    "owner": "Kenji Sato",
+    "status": "Suspended",
+    "registeredDate": "Oct 15, 2023",
+    "plan": "Basic"
+  },
+  {
+    "id": "t_005",
+    "restaurantName": "Morning Crumb",
+    "owner": "Alice Dubois",
+    "status": "Active",
+    "registeredDate": "Oct 12, 2023",
+    "plan": "Pro"
+  }
+]
