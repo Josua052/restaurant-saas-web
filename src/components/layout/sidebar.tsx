@@ -15,7 +15,6 @@ import { buttonVariants } from "@/components/ui/button";
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Tenants", href: "/dashboard/tenants", icon: Users },
-  { name: "Onboarding", href: "/dashboard/tenants/new", icon: UserPlus },
 ];
 
 const footerItems = [
@@ -46,7 +45,9 @@ export function Sidebar() {
       {/* Main Navigation */}
       <nav className="flex-1 space-y-1 px-4">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = item.href === "/dashboard" 
+            ? pathname === "/dashboard" 
+            : pathname.startsWith(item.href);
           return (
             <Link
               key={item.name}

@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Search, Download, Plus, MoreVertical, Store } from "lucide-react";
+import { Search, Download, Plus, MoreVertical, Store, Filter } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+
   Table,
   TableBody,
   TableCell,
@@ -60,52 +60,36 @@ export default function TenantsPage() {
         </div>
       </div>
 
-      {/* Search Bar - inside page as requested */}
-      <div className="shrink-0 flex items-center">
-        <div className="relative w-full max-w-sm">
+      {/* Search and Filters */}
+      <div className="shrink-0 flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
             type="search" 
             placeholder="Search tenants..." 
-            className="w-full pl-9 h-11 lg:h-10 bg-white border-slate-300 focus-visible:ring-indigo-500 rounded-md"
+            className="w-full pl-9 h-11 lg:h-10 bg-white border-slate-300 focus-visible:ring-indigo-500 rounded-md shadow-sm"
           />
+        </div>
+        
+        <div className="w-full sm:w-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger className={buttonVariants({ variant: "outline", className: "w-full sm:w-auto bg-white !border-slate-300 text-slate-700 hover:bg-white hover:text-slate-700 aria-expanded:bg-white aria-expanded:text-slate-700 font-medium h-11 lg:h-10" })}>
+              <Filter className="mr-2 h-4 w-4" />
+              Filter: All Tenants
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[200px] border border-slate-200 shadow-lg bg-white">
+              <DropdownMenuItem className="cursor-pointer font-medium text-indigo-600 bg-indigo-50/50">All Tenants</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">Active</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">Trial</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">Suspended</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Data Container with Tabs */}
+      {/* Data Container */}
       <div className="flex-1 flex flex-col min-h-0 bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-        <Tabs defaultValue="all" className="flex flex-col h-full w-full">
-          <div className="shrink-0 px-6 border-b border-slate-200">
-            <TabsList className="bg-transparent h-14 p-0 space-x-6">
-              <TabsTrigger 
-                value="all" 
-                className="data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-slate-500 hover:text-slate-700"
-              >
-                All Tenants
-                <Badge variant="secondary" className="ml-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-100">142</Badge>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="active" 
-                className="data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-slate-500 hover:text-slate-700"
-              >
-                Active
-              </TabsTrigger>
-              <TabsTrigger 
-                value="trial" 
-                className="data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-slate-500 hover:text-slate-700"
-              >
-                Trial
-              </TabsTrigger>
-              <TabsTrigger 
-                value="suspended" 
-                className="data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-slate-500 hover:text-slate-700"
-              >
-                Suspended
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="all" className="flex-1 overflow-y-auto p-0 m-0 outline-none">
+        <div className="flex-1 overflow-y-auto p-0 m-0 outline-none">
             {/* Desktop Table View */}
             <div className="hidden md:block">
               <Table>
@@ -247,7 +231,7 @@ export default function TenantsPage() {
                 </div>
               ))}
             </div>
-          </TabsContent>
+          </div>
           
           {/* Pagination Footer */}
           <div className="shrink-0 flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white">
@@ -280,7 +264,6 @@ export default function TenantsPage() {
                 </PaginationContent>
               </Pagination>
           </div>
-        </Tabs>
       </div>
     </div>
   );
