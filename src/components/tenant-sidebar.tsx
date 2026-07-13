@@ -29,11 +29,11 @@ export default function TenantSidebar() {
   const navItems = [
     { name: "Dashboard", href: "/owner", icon: LayoutDashboard },
     { name: "Reservations", href: "/owner/reservations", icon: CalendarCheck },
-    { name: "Menu", href: "#", icon: Utensils },
-    { name: "Menu & Category Builder", href: "#", icon: Layers },
-    { name: "Tables", href: "#", icon: Armchair },
-    { name: "Employees", href: "#", icon: Users },
-    { name: "Settings", href: "#", icon: Settings },
+    { name: "Menu", href: "/owner/menu", icon: Utensils },
+    // { name: "Menu & Category Builder", href: "#", icon: Layers },
+    // { name: "Tables", href: "#", icon: Armchair },
+    { name: "Employees", href: "/owner/employees", icon: Users },
+    // { name: "Settings", href: "#", icon: Settings },
   ]
 
   return (
