@@ -14,16 +14,23 @@ export const config = {
   ],
 };
 
-export default function middleware(req: NextRequest) {
+export default function proxy(req: NextRequest) {
   const url = req.nextUrl;
-  
   const hostname = req.headers.get("host") || "";
+  const domain = hostname.split(":")[0]; 
   
-  const allowedRootDomains = ["namawebsite.com"];
+  const allowedRootDomains = ["namawebsite.com", "localhost", "127.0.0.1"];
+  const isLocalIP = domain.startsWith("192.168.");
   
-  if (allowedRootDomains.includes(hostname)) {
+  // If it's the root application domain
+  if (allowedRootDomains.includes(domain) || isLocalIP) {
+    // Redirect root to login
+    if (url.pathname === "/") {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
     return NextResponse.next();
   }
-  const domain = hostname.split(":")[0]; 
+  
+  // For tenant subdomains, rewrite to /[domain]/...
   return NextResponse.rewrite(new URL(`/${domain}${url.pathname}${url.search}`, req.url));
 }

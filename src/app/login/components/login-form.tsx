@@ -34,19 +34,35 @@ export function LoginForm() {
     setIsLoading(true);
     setError(null);
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      });
 
-    // Simulate validation based on the image's error state requirement
-    // In a real app, this would be an API response check
-    if (data.email !== "admin@example.com" || data.password !== "password123") {
-      setError("Invalid credentials. Please try again.");
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        // Extract error detail from backend format if available
+        const errorDetail = result.errors?.detail || result.message || "Invalid credentials. Please try again.";
+        setError(errorDetail);
+        setIsLoading(false);
+        return;
+      }
+
+      // On success, token is already set in HTTP-Only cookie by Next.js API route
+      router.push("/dashboard");
+    } catch (err) {
+      console.error("Login request failed:", err);
+      setError("A network error occurred. Please try again later.");
       setIsLoading(false);
-      return;
     }
-
-    // On success, redirect to dashboard
-    router.push("/dashboard");
   };
 
   return (
