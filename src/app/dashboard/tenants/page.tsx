@@ -56,10 +56,11 @@ interface PaginationMeta {
 export default async function TenantsPage({
   searchParams,
 }: {
-  searchParams: { page?: string; search?: string };
+  searchParams: Promise<{ page?: string; search?: string }>;
 }) {
-  const page = searchParams.page ? parseInt(searchParams.page, 10) : 1;
-  const search = searchParams.search || "";
+  const params = await searchParams;
+  const page = params.page ? parseInt(params.page, 10) : 1;
+  const search = params.search || "";
   const limit = 10;
 
   const cookieStore = await cookies();

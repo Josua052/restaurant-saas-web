@@ -36,26 +36,67 @@ export default function CreateTenantPage() {
   const isPasswordValid = initialPassword.length >= 6;
   const showPasswordSuccess = passwordTouched && isPasswordValid;
   
+  // UI Flow State
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [serverError, setServerError] = useState("");
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
   const handleInitialSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setServerError(""); // Reset error when opening confirmation
     setShowConfirmModal(true);
   };
 
-  const handleConfirmRegister = () => {
+  const handleConfirmRegister = async () => {
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setServerError("");
+
+    try {
+      const response = await fetch(`${API_URL}/tenant`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          restaurant_name: restaurantName,
+          owner_name: ownerName,
+          owner_email: ownerEmail,
+          owner_password: initialPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setShowConfirmModal(false);
+        setShowSuccess(true);
+      } else {
+        // API returned an error (e.g., email already exists, or validation failed)
+        let errMsg = data.message || "Failed to register restaurant.";
+        if (data.error) {
+          if (typeof data.error === 'string') {
+             errMsg += ` (${data.error})`;
+          } else if (Array.isArray(data.error)) {
+             errMsg += ` (${data.error.join(", ")})`;
+          }
+        }
+        setServerError(errMsg);
+        setShowConfirmModal(false); // Close modal to show error banner on the main form
+      }
+    } catch (error) {
+      console.error("Registration Error:", error);
+      setServerError("Network error. Could not connect to the backend server.");
       setShowConfirmModal(false);
-      setShowSuccess(true);
-    }, 800);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  // Redirect countdown effect on success
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (showSuccess && countdown > 0) {
@@ -84,6 +125,17 @@ export default function CreateTenantPage() {
             <p className="text-sm md:text-[15px] text-slate-500">Create a new tenant account and configure initial owner access.</p>
           </div>
 
+          {/* Error Banner */}
+          {serverError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 items-start animate-in fade-in slide-in-from-top-2">
+              <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-semibold text-red-800">Registration Failed</h4>
+                <p className="text-[13px] text-red-600 mt-1">{serverError}</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleInitialSubmit}>
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
               {/* Form Body */}
@@ -105,6 +157,7 @@ export default function CreateTenantPage() {
                       className="h-11 text-base md:text-sm font-medium placeholder:font-normal" 
                       value={restaurantName}
                       onChange={(e) => setRestaurantName(e.target.value)}
+                      required
                     />
                   </div>
                 </section>
@@ -129,6 +182,7 @@ export default function CreateTenantPage() {
                         className="h-11 text-base md:text-sm font-medium placeholder:font-normal" 
                         value={ownerName}
                         onChange={(e) => setOwnerName(e.target.value)}
+                        required
                       />
                     </div>
 
@@ -145,6 +199,7 @@ export default function CreateTenantPage() {
                             value={ownerEmail}
                             onChange={(e) => setOwnerEmail(e.target.value)}
                             onBlur={() => setEmailTouched(true)}
+                            required
                             className={`h-11 pl-10 pr-10 text-base md:text-sm font-medium ${showEmailError ? 'border-red-500 focus-visible:ring-red-500 bg-red-50/30' : 'border-slate-200 focus-visible:ring-indigo-500'}`} 
                           />
                           <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${showEmailError ? 'text-red-500' : 'text-slate-400'}`}>
@@ -172,6 +227,8 @@ export default function CreateTenantPage() {
                             value={initialPassword}
                             onChange={(e) => setInitialPassword(e.target.value)}
                             onBlur={() => setPasswordTouched(true)}
+                            required
+                            minLength={6}
                             className={`h-11 pl-10 pr-10 text-base md:text-sm font-medium ${showPasswordSuccess ? 'border-green-500 focus-visible:ring-green-500 bg-green-50/30' : 'border-slate-200 focus-visible:ring-indigo-500'}`} 
                           />
                           <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${showPasswordSuccess ? 'text-green-500' : 'text-slate-400'}`}>
@@ -214,6 +271,7 @@ export default function CreateTenantPage() {
                 
                 <Button 
                   type="submit" 
+                  disabled={!isEmailValid || !isPasswordValid || !restaurantName || !ownerName}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-medium px-6 h-11"
                 >
                   Register Restaurant

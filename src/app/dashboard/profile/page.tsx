@@ -12,7 +12,7 @@ export default async function SuperAdminProfilePage() {
   const token = cookieStore.get("access_token")?.value;
   
   let userProfile = null;
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
   if (token) {
     try {
