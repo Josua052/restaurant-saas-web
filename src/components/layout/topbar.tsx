@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
+import UserProfileDropdown from "@/components/user-profile-dropdown";
 
 interface TopBarProps {
   title: string;
@@ -40,10 +41,10 @@ export function TopBar({ title }: TopBarProps) {
           <Grid className="h-5 w-5" />
         </Button>
         <div className="ml-2 h-8 w-px bg-slate-200" />
-        <Avatar className="h-7 w-7 md:h-8 md:w-8 cursor-pointer ring-2 ring-transparent hover:ring-indigo-500 transition-all">
-          <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Super Admin" />
-          <AvatarFallback className="bg-indigo-100 text-indigo-700 font-medium text-xs">SA</AvatarFallback>
-        </Avatar>
+        <UserProfileDropdown 
+          profileHref="/dashboard/profile" 
+          avatarSrc="https://i.pravatar.cc/150?u=a042581f4e29026704d" 
+        />
       </div>
     </header>
   );

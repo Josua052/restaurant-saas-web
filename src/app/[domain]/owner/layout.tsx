@@ -42,7 +42,7 @@ export default function OwnerLayout({
           <button className="text-slate-500 hover:text-slate-700 transition-colors">
             <Grip className="w-5 h-5" />
           </button>
-          <UserProfileDropdown />
+          <UserProfileDropdown profileHref="/owner/profile" />
           </div>
         </header>
 
