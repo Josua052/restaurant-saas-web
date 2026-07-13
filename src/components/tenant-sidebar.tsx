@@ -73,8 +73,15 @@ export default function TenantSidebar() {
 
       {/* Bottom Nav */}
       <div className="p-4 border-t border-slate-100 flex flex-col gap-1.5 shrink-0">
-        <Link href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors">
-          <Settings className="w-5 h-5 text-slate-500" />
+        <Link 
+          href="/owner/settings" 
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+            isActive("/owner/settings")
+              ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200" 
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+          }`}
+        >
+          <Settings className={`w-5 h-5 ${isActive("/owner/settings") ? "text-white" : "text-slate-500"}`} />
           Settings
         </Link>
         <Link href="#" className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors">
