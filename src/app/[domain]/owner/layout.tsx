@@ -1,19 +1,11 @@
 import { ReactNode } from "react"
-import Link from "next/link"
 import { 
-  LayoutDashboard, 
-  CalendarCheck, 
-  Utensils, 
-  Layers, 
-  Armchair, 
-  Users, 
-  Settings, 
-  LogOut,
   Star,
   Bell,
   Grip,
   Menu
 } from "lucide-react"
+import TenantSidebar from "@/components/tenant-sidebar"
 
 export default function OwnerLayout({
   children,
@@ -23,67 +15,13 @@ export default function OwnerLayout({
   params: { domain: string }
 }) {
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] font-sans">
-      {/* Sidebar (Hidden on mobile) */}
-      <aside className="hidden md:flex w-[280px] bg-white border-r border-slate-200 flex-col shrink-0">
-        {/* Logo Area */}
-        <div className="h-20 flex items-center px-6 gap-3">
-          <div className="w-10 h-10 bg-indigo-700 text-white rounded-lg flex items-center justify-center font-bold text-xl">
-            K
-          </div>
-          <div>
-            <h2 className="font-bold text-indigo-700 text-lg leading-tight">Kopi Kenangan</h2>
-            <p className="text-xs text-slate-500 font-medium">Jakarta Central Branch</p>
-          </div>
-        </div>
+    <div className="flex h-screen bg-[#f8fafc] font-sans overflow-hidden">
+      {/* Dynamic Sidebar (Handles mobile hiding and active states internally) */}
+      <TenantSidebar />
 
-        {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 flex flex-col gap-1.5">
-          <Link href={`/owner`} className="flex items-center gap-3 px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium shadow-sm shadow-indigo-200">
-            <LayoutDashboard className="w-5 h-5" />
-            Dashboard
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors">
-            <CalendarCheck className="w-5 h-5 text-slate-500" />
-            Reservations
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors">
-            <Utensils className="w-5 h-5 text-slate-500" />
-            Menu
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors">
-            <Layers className="w-5 h-5 text-slate-500" />
-            Menu & Category Builder
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors">
-            <Armchair className="w-5 h-5 text-slate-500" />
-            Tables
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors">
-            <Users className="w-5 h-5 text-slate-500" />
-            Employees
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors">
-            <Settings className="w-5 h-5 text-slate-500" />
-            Settings
-          </Link>
-        </nav>
-
-        {/* Bottom Nav */}
-        <div className="p-4 border-t border-slate-100 flex flex-col gap-1.5 mt-auto">
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl font-medium transition-colors">
-            <Settings className="w-5 h-5 text-slate-500" />
-            Settings
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors">
-            <LogOut className="w-5 h-5" />
-            Logout
-          </Link>
-        </div>
-      </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header */}
         <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between md:justify-end px-4 md:px-8 shrink-0">
           {/* Mobile Hamburger (Visible only on mobile) */}
