@@ -6,6 +6,7 @@ import {
   Menu
 } from "lucide-react"
 import TenantSidebar from "@/components/tenant-sidebar"
+import UserProfileDropdown from "@/components/user-profile-dropdown"
 
 export default function OwnerLayout({
   children,
@@ -41,9 +42,7 @@ export default function OwnerLayout({
           <button className="text-slate-500 hover:text-slate-700 transition-colors">
             <Grip className="w-5 h-5" />
           </button>
-          <div className="w-9 h-9 rounded-full bg-slate-200 border border-slate-300 overflow-hidden ml-2 cursor-pointer">
-            <img src="https://i.pravatar.cc/150?img=32" alt="User avatar" className="w-full h-full object-cover" />
-          </div>
+          <UserProfileDropdown />
           </div>
         </header>
 
