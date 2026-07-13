@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Building2, CheckCircle2, TrendingUp, Store } from "lucide-react";
+import { cookies } from "next/headers";
+import { ArrowRight, Building2, CheckCircle2, TrendingUp, Store, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -12,14 +13,109 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import mockTenants from "@/data/mock-tenants.json";
+export const metadata = {
+  title: "Dashboard | Admin Central",
+  description: "Overview of your SaaS tenants and statistics.",
+};
 
-export default function DashboardPage() {
-  // Take only the first 5 for the preview
-  const recentTenants = mockTenants.slice(0, 5);
+// Types corresponding to Backend JSON Response
+interface TenantDetailResponse {
+  id: string;
+  restaurant_name: string;
+  slug: string;
+  status: number;
+  created_at: string;
+  branch_name: string;
+  address: string;
+  owner_name: string;
+  owner_email: string;
+  owner_phone: string;
+}
+
+interface DashboardStatsResponse {
+  total_tenants: number;
+  active_tenants: number;
+  new_this_month: number;
+  recent_tenants: TenantDetailResponse[];
+}
+
+export default async function DashboardPage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("access_token")?.value;
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+
+  let stats: DashboardStatsResponse | null = null;
+  let fetchError = null;
+
+  if (token) {
+    try {
+      // Using cache: "no-store" to ensure real-time data freshness
+      const res = await fetch(`${API_URL}/superadmin/dashboard/stats`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        stats = json.data;
+      } else {
+        const errJson = await res.json();
+        fetchError = errJson.message || "Failed to fetch stats";
+      }
+    } catch (error) {
+      console.error("Dashboard Stats Fetch Error:", error);
+      fetchError = "Network error. Make sure the backend is running.";
+    }
+  }
+
+  // Formatting utility for Date
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  // Helper function to render Status Badge
+  const renderStatusBadge = (status: number) => {
+    switch (status) {
+      case 1:
+        return (
+          <Badge variant="outline" className="bg-green-100 text-green-700 border-transparent">
+            Active
+          </Badge>
+        );
+      case 0:
+        return (
+          <Badge variant="outline" className="bg-red-100 text-red-700 border-transparent">
+            Suspended
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="bg-slate-100 text-slate-700 border-transparent">
+            Unknown
+          </Badge>
+        );
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      
+      {fetchError && (
+        <div className="p-4 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 border border-red-200">
+          <AlertCircle className="w-5 h-5" />
+          <p className="text-sm font-medium">{fetchError}</p>
+        </div>
+      )}
+
       {/* Stat Cards */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-sm border-slate-200">
@@ -33,7 +129,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold font-sans tabular-nums text-slate-900">
-              1,492
+              {stats?.total_tenants?.toLocaleString() || 0}
             </div>
           </CardContent>
         </Card>
@@ -50,11 +146,8 @@ export default function DashboardPage() {
           <CardContent>
             <div className="flex items-baseline gap-2">
               <div className="text-3xl font-bold font-sans tabular-nums text-slate-900">
-                1,240
+                {stats?.active_tenants?.toLocaleString() || 0}
               </div>
-              <span className="text-xs font-medium text-green-600 font-sans">
-                +12%
-              </span>
             </div>
           </CardContent>
         </Card>
@@ -70,7 +163,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold font-sans tabular-nums text-slate-900">
-              84
+              {stats?.new_this_month?.toLocaleString() || 0}
             </div>
           </CardContent>
         </Card>
@@ -96,37 +189,33 @@ export default function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentTenants.map((tenant) => (
-                <TableRow key={tenant.id} className="group cursor-pointer hover:bg-slate-50 transition-colors">
-                  <TableCell className="py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 shrink-0 rounded-md bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-white group-hover:shadow-sm border border-transparent group-hover:border-slate-200 transition-all">
-                        <Store className="h-5 w-5" />
-                      </div>
-                      <span className="font-medium text-slate-900">{tenant.restaurantName}</span>
-                    </div>
+              {!stats?.recent_tenants || stats.recent_tenants.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center text-slate-500">
+                    No recent tenants found.
                   </TableCell>
-                  <TableCell className="text-slate-600">{tenant.owner}</TableCell>
-                  <TableCell>
-                    {tenant.status === "Active" && (
-                      <Badge variant="outline" className="bg-green-100 text-green-700 border-transparent">
-                        Active
-                      </Badge>
-                    )}
-                    {tenant.status === "Trial" && (
-                      <Badge variant="outline" className="bg-blue-100 text-blue-700 border-transparent">
-                        Trial
-                      </Badge>
-                    )}
-                    {tenant.status === "Suspended" && (
-                      <Badge variant="outline" className="bg-red-100 text-red-700 border-transparent">
-                        Suspended
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-slate-500 tabular-nums">{tenant.registeredDate}</TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                stats.recent_tenants.map((tenant) => (
+                  <TableRow key={tenant.id} className="group cursor-pointer hover:bg-slate-50 transition-colors">
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 shrink-0 rounded-md bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-white group-hover:shadow-sm border border-transparent group-hover:border-slate-200 transition-all">
+                          <Store className="h-5 w-5" />
+                        </div>
+                        <span className="font-medium text-slate-900">{tenant.restaurant_name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-slate-600">{tenant.owner_name}</TableCell>
+                    <TableCell>
+                      {renderStatusBadge(tenant.status)}
+                    </TableCell>
+                    <TableCell className="text-slate-500 tabular-nums">
+                      {formatDate(tenant.created_at)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
