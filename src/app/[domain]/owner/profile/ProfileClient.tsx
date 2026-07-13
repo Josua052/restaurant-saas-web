@@ -121,6 +121,7 @@ export default function ProfileClient() {
               </label>
               {isEditing ? (
                 <input
+                  suppressHydrationWarning
                   type="text"
                   value={draftPersonalData.fullName}
                   onChange={(e) =>
@@ -188,6 +189,7 @@ export default function ProfileClient() {
               </label>
               <div className="relative">
                 <input
+                  suppressHydrationWarning
                   type={showCurrentPassword ? "text" : "password"}
                   placeholder="Enter current password"
                   value={passwordData.currentPassword}
@@ -219,6 +221,7 @@ export default function ProfileClient() {
               </label>
               <div className="relative">
                 <input
+                  suppressHydrationWarning
                   type={showNewPassword ? "text" : "password"}
                   placeholder="Enter new password"
                   value={passwordData.newPassword}
@@ -250,6 +253,7 @@ export default function ProfileClient() {
               </label>
               <div className="relative">
                 <input
+                  suppressHydrationWarning
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm new password"
                   value={passwordData.confirmPassword}

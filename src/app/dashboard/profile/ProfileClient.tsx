@@ -8,17 +8,39 @@ import {
   Star
 } from "lucide-react"
 
-export default function ProfileClient() {
+// Define the interface based on the Go backend User entity
+export interface UserProfile {
+  ID?: string;
+  id?: string;
+  Name?: string;
+  name?: string;
+  Email?: string;
+  email?: string;
+  Role?: {
+    Name?: string;
+    name?: string;
+  };
+  role?: {
+    Name?: string;
+    name?: string;
+  };
+}
+
+interface ProfileClientProps {
+  userProfile?: UserProfile | null;
+}
+
+export default function ProfileClient({ userProfile }: ProfileClientProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  // Personal Info Form State
+  // Personal Info Form State (Hydrated from Server Data)
   const [personalData, setPersonalData] = useState({
-    fullName: "Admin Pusat",
-    email: "admin@kopikenangan.com",
-    role: "Super Admin",
+    fullName: userProfile?.Name || userProfile?.name || "",
+    email: userProfile?.Email || userProfile?.email || "",
+    role: userProfile?.Role?.Name || userProfile?.Role?.name || userProfile?.role?.Name || userProfile?.role?.name || "",
   })
   const [draftPersonalData, setDraftPersonalData] = useState({ ...personalData })
 
@@ -99,6 +121,7 @@ export default function ProfileClient() {
                   <p className="text-slate-900 font-medium text-[15px]">{personalData.fullName}</p>
                 ) : (
                   <input 
+                    suppressHydrationWarning
                     type="text" 
                     value={draftPersonalData.fullName}
                     onChange={(e) => setDraftPersonalData({...draftPersonalData, fullName: e.target.value})}
@@ -130,6 +153,7 @@ export default function ProfileClient() {
                       <Lock className="w-4 h-4 text-slate-400" />
                     </div>
                     <input 
+                      suppressHydrationWarning
                       type="text" 
                       value={draftPersonalData.email}
                       disabled
@@ -164,6 +188,7 @@ export default function ProfileClient() {
               <label className="block text-xs font-semibold text-slate-700 mb-2">Current Password</label>
               <div className="relative">
                 <input 
+                  suppressHydrationWarning
                   type={showCurrentPassword ? "text" : "password"} 
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
@@ -185,6 +210,7 @@ export default function ProfileClient() {
               <label className="block text-xs font-semibold text-slate-700 mb-2">New Password</label>
               <div className="relative">
                 <input 
+                  suppressHydrationWarning
                   type={showNewPassword ? "text" : "password"} 
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -206,6 +232,7 @@ export default function ProfileClient() {
               <label className="block text-xs font-semibold text-slate-700 mb-2">Confirm New Password</label>
               <div className="relative">
                 <input 
+                  suppressHydrationWarning
                   type={showConfirmPassword ? "text" : "password"} 
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
