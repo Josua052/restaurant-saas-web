@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, ChevronDown, Plus, X, UtensilsCrossed } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, ChevronDown, Plus, X, UtensilsCrossed, Loader2 } from "lucide-react";
 
 export interface MenuCategory {
   ID: string;
@@ -25,12 +26,22 @@ interface MenuClientProps {
   domain: string;
   menus: MenuItem[];
   categories: MenuCategory[];
+  token: string;
 }
 
-export default function MenuClient({ domain, menus, categories }: MenuClientProps) {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+
+export default function MenuClient({ domain, menus, categories, token }: MenuClientProps) {
+  const router = useRouter();
   const [isCategorySlideOpen, setIsCategorySlideOpen] = useState(false);
-  const [isCategoryActive, setIsCategoryActive] = useState(true);
   
+  // State for Create Category
+  const [categoryName, setCategoryName] = useState("");
+  const [isCategoryActive, setIsCategoryActive] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
   // State for filtering
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("All");
@@ -57,11 +68,61 @@ export default function MenuClient({ domain, menus, categories }: MenuClientProp
   const filteredMenus = useMemo(() => {
     return menus.filter((item) => {
       const matchesSearch = item.Name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            item.Description.toLowerCase().includes(searchQuery.toLowerCase());
+                            (item.Description && item.Description.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesCategory = selectedCategoryId === "All" || item.CategoryID === selectedCategoryId;
       return matchesSearch && matchesCategory;
     });
   }, [menus, searchQuery, selectedCategoryId]);
+
+  const handleCreateCategory = async () => {
+    if (!categoryName.trim()) {
+      setErrorMsg("Category name is required.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    try {
+      const res = await fetch(`${API_URL}/management/menus/categories`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: categoryName.trim(),
+          sort_order: 0,
+          is_active: isCategoryActive
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to create category");
+      }
+
+      // Success!
+      setSuccessMsg(`Category "${categoryName.trim()}" created successfully!`);
+      
+      // Tell Next.js to refresh the server components to get the new category list
+      router.refresh();
+
+      // Delay closing to let user see success message
+      setTimeout(() => {
+        setCategoryName("");
+        setIsCategorySlideOpen(false);
+        setSuccessMsg("");
+      }, 1500);
+      
+    } catch (err: any) {
+      setErrorMsg(err.message || "An unexpected error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="w-full space-y-6">
@@ -238,6 +299,7 @@ export default function MenuClient({ domain, menus, categories }: MenuClientProp
               <button
                 onClick={() => setIsCategorySlideOpen(false)}
                 className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                disabled={isSubmitting}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -245,14 +307,33 @@ export default function MenuClient({ domain, menus, categories }: MenuClientProp
 
             {/* Panel Body */}
             <div className="flex-1 p-6 overflow-y-auto space-y-6">
+              
+              {errorMsg && (
+                <div className="bg-rose-50 text-rose-600 px-4 py-3 rounded-lg text-sm font-medium border border-rose-200">
+                  {errorMsg}
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="bg-emerald-50 text-emerald-600 px-4 py-3 rounded-lg text-sm font-medium border border-emerald-200">
+                  {successMsg}
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Category Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
+                  value={categoryName}
+                  onChange={(e) => setCategoryName(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors disabled:opacity-50 disabled:bg-slate-50"
                   placeholder="e.g. Signature Coffee"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCreateCategory();
+                  }}
                 />
               </div>
 
@@ -268,28 +349,33 @@ export default function MenuClient({ domain, menus, categories }: MenuClientProp
                 {/* Custom Toggle Switch */}
                 <button
                   onClick={() => setIsCategoryActive(!isCategoryActive)}
-                  className={`w-11 h-6 rounded-full flex items-center transition-colors px-1 ${isCategoryActive ? "bg-indigo-600" : "bg-slate-300"}`}
+                  disabled={isSubmitting}
+                  className={`w-11 h-6 rounded-full flex items-center transition-colors px-1 ${isCategoryActive ? "bg-indigo-600" : "bg-slate-300"} disabled:opacity-50`}
                 >
                   <div
                     className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${isCategoryActive ? "translate-x-5" : "translate-x-0"}`}
                   ></div>
                 </button>
               </div>
+              
             </div>
 
             {/* Panel Footer */}
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
               <button
                 onClick={() => setIsCategorySlideOpen(false)}
-                className="px-5 py-2.5 border border-slate-300 bg-white text-slate-700 rounded-lg font-medium text-sm hover:bg-slate-50 transition-colors"
+                disabled={isSubmitting}
+                className="px-5 py-2.5 border border-slate-300 bg-white text-slate-700 rounded-lg font-medium text-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
-                onClick={() => setIsCategorySlideOpen(false)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors shadow-sm"
+                onClick={handleCreateCategory}
+                disabled={isSubmitting}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors shadow-sm disabled:opacity-70 flex items-center gap-2"
               >
-                Save Category
+                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isSubmitting ? "Saving..." : "Save Category"}
               </button>
             </div>
           </div>

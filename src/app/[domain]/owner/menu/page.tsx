@@ -3,9 +3,10 @@ import MenuClient from "./MenuClient";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
-export default async function MenuPage({ params }: { params: { domain: string } }) {
+export default async function MenuPage({ params }: { params: Promise<{ domain: string }> }) {
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("access_token")?.value || "";
+  const { domain } = await params;
 
   let menus = [];
   let categories = [];
@@ -34,5 +35,5 @@ export default async function MenuPage({ params }: { params: { domain: string } 
     }
   }
 
-  return <MenuClient domain={params.domain} menus={menus} categories={categories} />;
+  return <MenuClient domain={domain} menus={menus} categories={categories} token={token} />;
 }
