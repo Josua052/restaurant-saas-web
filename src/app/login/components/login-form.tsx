@@ -43,6 +43,7 @@ export function LoginForm() {
         body: JSON.stringify({
           email: data.email,
           password: data.password,
+          scope: "admin",
         }),
       });
 

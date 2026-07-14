@@ -48,7 +48,7 @@ interface DashboardStatsResponse {
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("admin_access_token")?.value;
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 

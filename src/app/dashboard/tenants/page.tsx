@@ -64,7 +64,7 @@ export default async function TenantsPage({
   const limit = 10;
 
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("admin_access_token")?.value;
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   let tenants: TenantListResponse[] = [];

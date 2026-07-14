@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email, password, scope = "tenant" } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -53,9 +53,12 @@ export async function POST(request: Request) {
     // Next.js 15+ syntax using await cookies()
     const cookieStore = await cookies();
     
+    // Determine cookie name based on scope
+    const cookieName = scope === "admin" ? "admin_access_token" : "access_token";
+
     // Set Access Token
     cookieStore.set({
-      name: "access_token",
+      name: cookieName,
       value: accessToken,
       httpOnly: true, // Cannot be accessed by JavaScript (XSS protection)
       secure: process.env.NODE_ENV === "production", // HTTPS only in production
@@ -66,8 +69,9 @@ export async function POST(request: Request) {
 
     // Set Refresh Token (if provided)
     if (refreshToken) {
+      const refreshCookieName = scope === "admin" ? "admin_refresh_token" : "refresh_token";
       cookieStore.set({
-        name: "refresh_token",
+        name: refreshCookieName,
         value: refreshToken,
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",

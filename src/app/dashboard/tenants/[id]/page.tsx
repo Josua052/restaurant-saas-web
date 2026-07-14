@@ -13,7 +13,7 @@ export default async function TenantDetailPage({
 }) {
   const { id } = await params;
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("admin_access_token")?.value;
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   if (!token) {

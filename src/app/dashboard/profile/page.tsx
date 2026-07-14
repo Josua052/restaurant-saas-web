@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default async function SuperAdminProfilePage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("admin_access_token")?.value;
 
   let userProfile = null;
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
