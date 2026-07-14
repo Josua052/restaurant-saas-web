@@ -16,13 +16,13 @@ export default function OwnerLayout({
   params: { domain: string }
 }) {
   return (
-    <div className="flex h-screen bg-[#f8fafc] font-sans overflow-hidden">
+    <div className="flex h-screen bg-[#f8fafc] font-sans overflow-hidden" suppressHydrationWarning>
       {/* Dynamic Sidebar (Handles mobile hiding and active states internally) */}
       <TenantSidebar />
 
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden" suppressHydrationWarning>
         {/* Top Header */}
         <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between md:justify-end px-4 md:px-8 shrink-0">
           {/* Mobile Hamburger (Visible only on mobile) */}
@@ -47,7 +47,7 @@ export default function OwnerLayout({
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 p-8 overflow-y-auto">
+        <div className="flex-1 p-8 overflow-y-auto" suppressHydrationWarning>
           {children}
         </div>
       </main>

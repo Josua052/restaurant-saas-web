@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useParams } from "next/navigation"
 import { 
   LayoutDashboard, 
   CalendarCheck, 
@@ -15,25 +15,24 @@ import {
 
 export default function TenantSidebar() {
   const pathname = usePathname();
+  const params = useParams();
+  const domain = params?.domain as string || "";
 
   // Helper to check if a route is active
   const isActive = (path: string) => {
-    // If the path is exactly "/owner", check for exact match
-    if (path === "/owner") {
-      return pathname === "/owner" || pathname === "/owner/";
+    // If the path is exactly "/{domain}/owner", check for exact match
+    if (path === `/${domain}/owner`) {
+      return pathname === `/${domain}/owner` || pathname === `/${domain}/owner/`;
     }
     // Otherwise check if pathname starts with the path
     return pathname.startsWith(path);
   };
 
   const navItems = [
-    { name: "Dashboard", href: "/owner", icon: LayoutDashboard },
-    { name: "Reservations", href: "/owner/reservations", icon: CalendarCheck },
-    { name: "Menu", href: "/owner/menu", icon: Utensils },
-    // { name: "Menu & Category Builder", href: "#", icon: Layers },
-    // { name: "Tables", href: "#", icon: Armchair },
-    { name: "Employees", href: "/owner/employees", icon: Users },
-    // { name: "Settings", href: "#", icon: Settings },
+    { name: "Dashboard", href: `/${domain}/owner`, icon: LayoutDashboard },
+    { name: "Reservations", href: `/${domain}/owner/reservations`, icon: CalendarCheck },
+    { name: "Menu", href: `/${domain}/owner/menu`, icon: Utensils },
+    { name: "Employees", href: `/${domain}/owner/employees`, icon: Users },
   ]
 
   return (
@@ -74,14 +73,14 @@ export default function TenantSidebar() {
       {/* Bottom Nav */}
       <div className="p-4 border-t border-slate-100 flex flex-col gap-1.5 shrink-0">
         <Link 
-          href="/owner/settings" 
+          href={`/${domain}/owner/settings`} 
           className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-            isActive("/owner/settings")
+            isActive(`/${domain}/owner/settings`)
               ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200" 
               : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
-          <Settings className={`w-5 h-5 ${isActive("/owner/settings") ? "text-white" : "text-slate-500"}`} />
+          <Settings className={`w-5 h-5 ${isActive(`/${domain}/owner/settings`) ? "text-white" : "text-slate-500"}`} />
           Settings
         </Link>
         <Link href="#" className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors">
