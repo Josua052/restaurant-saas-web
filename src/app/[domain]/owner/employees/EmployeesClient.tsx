@@ -45,21 +45,20 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
 
   // Dropdown & Change Role State
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
-  const [employeeForRoleChange, setEmployeeForRoleChange] = useState<
-    Employee | null
-  >(null);
+  const [employeeForRoleChange, setEmployeeForRoleChange] =
+    useState<Employee | null>(null);
 
   // Fetch Employees
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/management/employees`,
+        `${process.env.NEXT_PUBLIC_API_URL}/management/employees`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       if (res.ok) {
         const data = await res.json();
@@ -96,7 +95,7 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
     setIsSubmitting(true);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/management/employees`,
+        `${process.env.NEXT_PUBLIC_API_URL}/management/employees`,
         {
           method: "POST",
           headers: {
@@ -104,9 +103,9 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(inviteForm),
-        }
+        },
       );
-      
+
       const data = await res.json();
       if (res.ok) {
         setIsInviteModalOpen(false);
@@ -128,7 +127,7 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
     if (!employeeForRoleChange) return;
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/management/employees/${employeeForRoleChange.id}/role`,
+        `${process.env.NEXT_PUBLIC_API_URL}/management/employees/${employeeForRoleChange.id}/role`,
         {
           method: "PUT",
           headers: {
@@ -136,9 +135,9 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ role: newRole }),
-        }
+        },
       );
-      
+
       if (res.ok) {
         setEmployeeForRoleChange(null);
         fetchEmployees(); // Refresh
@@ -157,15 +156,15 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
     if (!confirm("Are you sure you want to remove this employee?")) return;
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/management/employees/${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/management/employees/${id}`,
         {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
-      
+
       if (res.ok) {
         fetchEmployees(); // Refresh
       } else {
@@ -247,13 +246,19 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
             <tbody className="divide-y divide-slate-100 text-center">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-slate-500"
+                  >
                     Loading employees...
                   </td>
                 </tr>
               ) : filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-slate-500"
+                  >
                     No employees found matching your filters.
                   </td>
                 </tr>
@@ -351,7 +356,8 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
         {/* Pagination */}
         <div className="flex items-center justify-between p-4 border-t border-slate-200 mt-auto bg-slate-50/50">
           <p className="text-sm text-slate-500 font-medium">
-            Showing {filteredEmployees.length > 0 ? 1 : 0} to {filteredEmployees.length} of {filteredEmployees.length} entries
+            Showing {filteredEmployees.length > 0 ? 1 : 0} to{" "}
+            {filteredEmployees.length} of {filteredEmployees.length} entries
           </p>
           <div className="flex items-center gap-2">
             <button className="px-3 py-1.5 border border-slate-200 rounded-md text-sm text-slate-400 bg-white cursor-not-allowed font-medium shadow-sm">
@@ -390,7 +396,9 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
                 <input
                   type="text"
                   value={inviteForm.name}
-                  onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setInviteForm({ ...inviteForm, name: e.target.value })
+                  }
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
                   placeholder="e.g. Alex Johnson"
                 />
@@ -402,7 +410,9 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
                 <input
                   type="email"
                   value={inviteForm.email}
-                  onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                  onChange={(e) =>
+                    setInviteForm({ ...inviteForm, email: e.target.value })
+                  }
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
                   placeholder="alex@restaurant.com"
                 />
@@ -414,7 +424,9 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
                 <input
                   type="password"
                   value={inviteForm.password}
-                  onChange={(e) => setInviteForm({ ...inviteForm, password: e.target.value })}
+                  onChange={(e) =>
+                    setInviteForm({ ...inviteForm, password: e.target.value })
+                  }
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
                   placeholder="Create a password"
                 />
@@ -426,7 +438,9 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
                 <label className="text-sm font-bold text-slate-700">Role</label>
                 <select
                   value={inviteForm.role}
-                  onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
+                  onChange={(e) =>
+                    setInviteForm({ ...inviteForm, role: e.target.value })
+                  }
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors bg-white cursor-pointer appearance-none"
                 >
                   <option value="Staff">Staff</option>

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     if (!email || !password) {
       return NextResponse.json(
         { success: false, message: "Email and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,22 +39,26 @@ export async function POST(request: Request) {
     if (!accessToken) {
       return NextResponse.json(
         { success: false, message: "Invalid response from server" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Prepare response to send back to client
-    const response = NextResponse.json({
-      success: true,
-      message: "Login successful",
-    }, { status: 200 });
+    const response = NextResponse.json(
+      {
+        success: true,
+        message: "Login successful",
+      },
+      { status: 200 },
+    );
 
     // SET HTTP-ONLY COOKIES
     // Next.js 15+ syntax using await cookies()
     const cookieStore = await cookies();
-    
+
     // Determine cookie name based on scope
-    const cookieName = scope === "admin" ? "admin_access_token" : "access_token";
+    const cookieName =
+      scope === "admin" ? "admin_access_token" : "access_token";
 
     // Set Access Token
     cookieStore.set({
@@ -69,7 +73,8 @@ export async function POST(request: Request) {
 
     // Set Refresh Token (if provided)
     if (refreshToken) {
-      const refreshCookieName = scope === "admin" ? "admin_refresh_token" : "refresh_token";
+      const refreshCookieName =
+        scope === "admin" ? "admin_refresh_token" : "refresh_token";
       cookieStore.set({
         name: refreshCookieName,
         value: refreshToken,
@@ -82,12 +87,11 @@ export async function POST(request: Request) {
     }
 
     return response;
-
   } catch (error) {
     console.error("Login Proxy Error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

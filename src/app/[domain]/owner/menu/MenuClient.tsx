@@ -240,9 +240,10 @@ export default function MenuClient({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredMenus.map((item) => (
-            <div
+            <Link
+              href={`/${domain}/owner/menu/${item.ID}`}
               key={item.ID}
-              className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer"
             >
               {/* Image & Status */}
               <div className="h-48 bg-slate-100 relative overflow-hidden flex items-center justify-center">
@@ -291,7 +292,7 @@ export default function MenuClient({
                   </span>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
