@@ -1,68 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, ChevronDown, Plus, X } from "lucide-react";
+import { Search, ChevronDown, Plus, X, UtensilsCrossed } from "lucide-react";
 
-// Mock Data for Menu Items
-const menuItems = [
-  {
-    id: "MK-001",
-    name: "Kopi Kenangan Mantan",
-    price: "$2.50",
-    description: "Our signature espresso blended with creamy milk and...",
-    category: "Coffee",
-    status: "Available",
-    image:
-      "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=500&q=80",
-  },
-  {
-    id: "MK-002",
-    name: "Double Espresso",
-    price: "$3.00",
-    description: "A robust double shot of our house blend, perfectly...",
-    category: "Coffee",
-    status: "Available",
-    image:
-      "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&q=80",
-  },
-  {
-    id: "MP-012",
-    name: "Butter Croissant",
-    price: "$4.50",
-    description: "Classic French pastry baked fresh daily.",
-    category: "Pastries",
-    status: "Sold Out",
-    image:
-      "https://images.unsplash.com/photo-1555507036-ab1e4006aa07?w=500&q=80",
-  },
-  {
-    id: "MN-005",
-    name: "Iced Matcha Latte",
-    price: "$3.50",
-    description: "Premium Japanese matcha green tea blended with your...",
-    category: "Non-Coffee",
-    status: "Available",
-    image:
-      "https://images.unsplash.com/photo-1536935338788-846bb9981813?w=500&q=80",
-  },
-];
+export interface MenuCategory {
+  ID: string;
+  Name: string;
+  SortOrder: number;
+}
 
-export default function MenuClient({ domain }: { domain: string }) {
+export interface MenuItem {
+  ID: string;
+  CategoryID: string | null;
+  Name: string;
+  Description: string;
+  Price: number;
+  ImageURL: string;
+  IsAvailable: boolean;
+  IsFeatured: boolean;
+}
+
+interface MenuClientProps {
+  domain: string;
+  menus: MenuItem[];
+  categories: MenuCategory[];
+}
+
+export default function MenuClient({ domain, menus, categories }: MenuClientProps) {
   const [isCategorySlideOpen, setIsCategorySlideOpen] = useState(false);
   const [isCategoryActive, setIsCategoryActive] = useState(true);
+  
+  // State for filtering
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("All");
 
-  const getStatusStyle = (status: string) => {
-    if (status === "Available") {
+  const getStatusStyle = (isAvailable: boolean) => {
+    if (isAvailable) {
       return "bg-emerald-100/90 text-emerald-800";
     }
     return "bg-rose-100/90 text-rose-800";
   };
 
-  const getStatusDot = (status: string) => {
-    if (status === "Available") return "bg-emerald-500";
+  const getStatusDot = (isAvailable: boolean) => {
+    if (isAvailable) return "bg-emerald-500";
     return "bg-rose-500";
   };
+
+  const getCategoryName = (categoryId: string | null) => {
+    if (!categoryId) return "Uncategorized";
+    const category = categories.find((c) => c.ID === categoryId);
+    return category ? category.Name : "Uncategorized";
+  };
+
+  // Filter items based on search and selected category
+  const filteredMenus = useMemo(() => {
+    return menus.filter((item) => {
+      const matchesSearch = item.Name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            item.Description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategoryId === "All" || item.CategoryID === selectedCategoryId;
+      return matchesSearch && matchesCategory;
+    });
+  }, [menus, searchQuery, selectedCategoryId]);
 
   return (
     <div className="w-full space-y-6">
@@ -85,7 +84,7 @@ export default function MenuClient({ domain }: { domain: string }) {
             Add Category
           </button>
           <Link
-            href={`/owner/menu/add`}
+            href={`/${domain}/owner/menu/add`}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -103,14 +102,21 @@ export default function MenuClient({ domain }: { domain: string }) {
           <input
             type="text"
             placeholder="Search menu items..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
           />
         </div>
-        <div className="relative w-full sm:w-[150px]">
-          <select className="w-full pl-4 pr-10 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 appearance-none bg-white font-medium text-slate-700 cursor-pointer">
-            <option>All</option>
-            <option>Coffee</option>
-            <option>Pastries</option>
+        <div className="relative w-full sm:w-[200px]">
+          <select 
+            value={selectedCategoryId}
+            onChange={(e) => setSelectedCategoryId(e.target.value)}
+            className="w-full pl-4 pr-10 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 appearance-none bg-white font-medium text-slate-700 cursor-pointer"
+          >
+            <option value="All">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat.ID} value={cat.ID}>{cat.Name}</option>
+            ))}
           </select>
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
             <ChevronDown className="h-4 w-4 text-slate-500" />
@@ -118,79 +124,100 @@ export default function MenuClient({ domain }: { domain: string }) {
         </div>
       </div>
 
-      {/* Menu Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {menuItems.map((item) => (
-          <div
-            key={item.id}
-            className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow"
-          >
-            {/* Image & Status */}
-            <div className="h-48 bg-slate-100 relative overflow-hidden">
-              <img
-                src={item.image}
-                alt={item.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div
-                className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 backdrop-blur-sm ${getStatusStyle(item.status)}`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${getStatusDot(item.status)}`}
-                ></span>
-                {item.status}
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-5 flex-1 flex flex-col">
-              <div className="flex justify-between items-start gap-2 mb-2">
-                <h3 className="font-bold text-slate-900 leading-tight">
-                  {item.name}
-                </h3>
-                <span className="font-bold text-indigo-700 shrink-0">
-                  {item.price}
-                </span>
-              </div>
-              <p className="text-sm text-slate-500 line-clamp-2 mb-4">
-                {item.description}
-              </p>
-
-              <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-semibold">
-                  {item.category}
-                </span>
-                <span className="text-slate-400 text-xs font-medium">
-                  {item.id}
-                </span>
-              </div>
-            </div>
+      {/* Menu Cards Grid or Empty State */}
+      {menus.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col items-center justify-center p-12 text-center min-h-[400px]">
+          <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+            <UtensilsCrossed className="w-10 h-10 text-slate-300" />
           </div>
-        ))}
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-        <p className="text-sm text-slate-500">Showing 1 to 4 of 42 items</p>
-        <div className="flex items-center gap-1">
-          <button className="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-400 bg-slate-50 cursor-not-allowed">
-            Previous
-          </button>
-          <button className="px-3 py-1 bg-indigo-600 text-white rounded-md text-sm font-medium">
-            1
-          </button>
-          <button className="px-3 py-1 hover:bg-slate-50 text-slate-700 rounded-md text-sm font-medium transition-colors">
-            2
-          </button>
-          <button className="px-3 py-1 hover:bg-slate-50 text-slate-700 rounded-md text-sm font-medium transition-colors">
-            3
-          </button>
-          <span className="px-2 text-slate-400">...</span>
-          <button className="px-3 py-1 border border-slate-300 hover:bg-slate-50 rounded-md text-sm text-slate-700 font-medium transition-colors">
-            Next
-          </button>
+          <h3 className="text-xl font-bold text-slate-900 mb-2">
+            No menu items found
+          </h3>
+          <p className="text-slate-500 max-w-md mb-8">
+            Your menu is currently empty. Get started by adding your first delicious category and item.
+          </p>
+          <div className="flex gap-4">
+             <button
+              onClick={() => setIsCategorySlideOpen(true)}
+              className="bg-white border border-slate-300 text-indigo-700 hover:bg-slate-50 px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Category
+            </button>
+            <Link
+              href={`/${domain}/owner/menu/add`}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Item
+            </Link>
+          </div>
         </div>
-      </div>
+      ) : filteredMenus.length === 0 ? (
+        <div className="py-20 text-center">
+           <p className="text-slate-500">No items match your search criteria.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {filteredMenus.map((item) => (
+            <div
+              key={item.ID}
+              className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow"
+            >
+              {/* Image & Status */}
+              <div className="h-48 bg-slate-100 relative overflow-hidden flex items-center justify-center">
+                {item.ImageURL ? (
+                  <img
+                    src={item.ImageURL}
+                    alt={item.Name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <UtensilsCrossed className="w-12 h-12 text-slate-300" />
+                )}
+                <div
+                  className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 backdrop-blur-sm ${getStatusStyle(item.IsAvailable)}`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${getStatusDot(item.IsAvailable)}`}
+                  ></span>
+                  {item.IsAvailable ? "Available" : "Sold Out"}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-5 flex-1 flex flex-col">
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <h3 className="font-bold text-slate-900 leading-tight">
+                    {item.Name}
+                  </h3>
+                  <span className="font-bold text-indigo-700 shrink-0">
+                    ${item.Price.toFixed(2)}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-500 line-clamp-2 mb-4">
+                  {item.Description || "No description provided."}
+                </p>
+
+                <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-semibold">
+                    {getCategoryName(item.CategoryID)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Pagination (Simplified visually for now until connected to real pagination state) */}
+      {menus.length > 0 && (
+        <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+          <p className="text-sm text-slate-500">
+            Showing {filteredMenus.length} of {menus.length} total items
+          </p>
+        </div>
+      )}
 
       {/* Add Category Slide-over Panel */}
       {isCategorySlideOpen && (
