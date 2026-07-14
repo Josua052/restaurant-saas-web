@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ArrowRight, Building2, CheckCircle2, TrendingUp, Store, AlertCircle } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  TrendingUp,
+  Store,
+  AlertCircle,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -43,7 +50,7 @@ export default async function DashboardPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("access_token")?.value;
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   let stats: DashboardStatsResponse | null = null;
   let fetchError = null;
@@ -87,19 +94,28 @@ export default async function DashboardPage() {
     switch (status) {
       case 1:
         return (
-          <Badge variant="outline" className="bg-green-100 text-green-700 border-transparent">
+          <Badge
+            variant="outline"
+            className="bg-green-100 text-green-700 border-transparent"
+          >
             Active
           </Badge>
         );
       case 0:
         return (
-          <Badge variant="outline" className="bg-red-100 text-red-700 border-transparent">
+          <Badge
+            variant="outline"
+            className="bg-red-100 text-red-700 border-transparent"
+          >
             Suspended
           </Badge>
         );
       default:
         return (
-          <Badge variant="outline" className="bg-slate-100 text-slate-700 border-transparent">
+          <Badge
+            variant="outline"
+            className="bg-slate-100 text-slate-700 border-transparent"
+          >
             Unknown
           </Badge>
         );
@@ -108,7 +124,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      
       {fetchError && (
         <div className="p-4 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 border border-red-200">
           <AlertCircle className="w-5 h-5" />
@@ -133,7 +148,7 @@ export default async function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="shadow-sm border-slate-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-slate-500 font-sans">
@@ -172,8 +187,17 @@ export default async function DashboardPage() {
       {/* Recent Tenants Table */}
       <Card className="shadow-sm border-slate-200 overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-white">
-          <h3 className="text-lg font-semibold text-slate-900 font-sans">Recent Tenants</h3>
-          <Link href="/dashboard/tenants" className={buttonVariants({ variant: "ghost", className: "text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-medium text-sm" })}>
+          <h3 className="text-lg font-semibold text-slate-900 font-sans">
+            Recent Tenants
+          </h3>
+          <Link
+            href="/dashboard/tenants"
+            className={buttonVariants({
+              variant: "ghost",
+              className:
+                "text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-medium text-sm",
+            })}
+          >
             View All
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
@@ -182,34 +206,50 @@ export default async function DashboardPage() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[40%] text-xs font-semibold text-slate-500 uppercase tracking-wider">Restaurant Name</TableHead>
-                <TableHead className="w-[25%] text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner</TableHead>
-                <TableHead className="w-[15%] text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-                <TableHead className="w-[20%] text-xs font-semibold text-slate-500 uppercase tracking-wider">Registered Date</TableHead>
+                <TableHead className="w-[40%] text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Restaurant Name
+                </TableHead>
+                <TableHead className="w-[25%] text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Owner
+                </TableHead>
+                <TableHead className="w-[15%] text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Status
+                </TableHead>
+                <TableHead className="w-[20%] text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Registered Date
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {!stats?.recent_tenants || stats.recent_tenants.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-slate-500">
+                  <TableCell
+                    colSpan={4}
+                    className="h-24 text-center text-slate-500"
+                  >
                     No recent tenants found.
                   </TableCell>
                 </TableRow>
               ) : (
                 stats.recent_tenants.map((tenant) => (
-                  <TableRow key={tenant.id} className="group cursor-pointer hover:bg-slate-50 transition-colors">
+                  <TableRow
+                    key={tenant.id}
+                    className="group cursor-pointer hover:bg-slate-50 transition-colors"
+                  >
                     <TableCell className="py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 shrink-0 rounded-md bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-white group-hover:shadow-sm border border-transparent group-hover:border-slate-200 transition-all">
                           <Store className="h-5 w-5" />
                         </div>
-                        <span className="font-medium text-slate-900">{tenant.restaurant_name}</span>
+                        <span className="font-medium text-slate-900">
+                          {tenant.restaurant_name}
+                        </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-600">{tenant.owner_name}</TableCell>
-                    <TableCell>
-                      {renderStatusBadge(tenant.status)}
+                    <TableCell className="text-slate-600">
+                      {tenant.owner_name}
                     </TableCell>
+                    <TableCell>{renderStatusBadge(tenant.status)}</TableCell>
                     <TableCell className="text-slate-500 tabular-nums">
                       {formatDate(tenant.created_at)}
                     </TableCell>

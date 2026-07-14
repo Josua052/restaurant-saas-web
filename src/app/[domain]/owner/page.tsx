@@ -8,7 +8,7 @@ import {
   FileEdit,
   Users,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -42,10 +42,10 @@ export default async function TenantOwnerDashboard({
   params: Promise<{ domain: string }>;
 }) {
   const { domain } = await params;
-  
+
   const cookieStore = await cookies();
   const token = cookieStore.get("access_token")?.value;
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   let reservationStats: ReservationStats | null = null;
   let tableStats: TableStats | null = null;
@@ -59,9 +59,18 @@ export default async function TenantOwnerDashboard({
       // Fetch all three endpoints concurrently using Promise.all
       // Backend now automatically handles tenant isolation from the token and sets default date.
       const [resReservations, resTables, resMenus] = await Promise.all([
-        fetch(`${API_URL}/management/reservations/stats`, { headers, cache: "no-store" }),
-        fetch(`${API_URL}/management/tables/stats`, { headers, cache: "no-store" }),
-        fetch(`${API_URL}/management/menus/stats`, { headers, cache: "no-store" }),
+        fetch(`${API_URL}/management/reservations/stats`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_URL}/management/tables/stats`, {
+          headers,
+          cache: "no-store",
+        }),
+        fetch(`${API_URL}/management/menus/stats`, {
+          headers,
+          cache: "no-store",
+        }),
       ]);
 
       if (!resReservations.ok || !resTables.ok || !resMenus.ok) {
@@ -69,7 +78,7 @@ export default async function TenantOwnerDashboard({
         const errDetails = await Promise.all([
           resReservations.ok ? null : resReservations.text(),
           resTables.ok ? null : resTables.text(),
-          resMenus.ok ? null : resMenus.text()
+          resMenus.ok ? null : resMenus.text(),
         ]);
         console.error("Dashboard API errors:", errDetails);
         fetchError = "Failed to fetch one or more dashboard metrics.";
@@ -79,14 +88,23 @@ export default async function TenantOwnerDashboard({
           resTables.json(),
           resMenus.json(),
         ]);
-        
-        reservationStats = jsonRes.data || { total_reservations: 0, upcoming_reservations: [] };
+
+        reservationStats = jsonRes.data || {
+          total_reservations: 0,
+          upcoming_reservations: [],
+        };
         tableStats = jsonTab.data || { active_tables: 0, total_tables: 0 };
-        menuStats = jsonMen.data || { active_menu_items: 0, sold_out_items: 0, categories_count: 0 };
+        menuStats = jsonMen.data || {
+          active_menu_items: 0,
+          sold_out_items: 0,
+          categories_count: 0,
+        };
       }
     } catch (error: any) {
       console.error("Owner Dashboard Stats Fetch Error:", error);
-      fetchError = error.message || "Network error. Make sure the backend is running and endpoints exist.";
+      fetchError =
+        error.message ||
+        "Network error. Make sure the backend is running and endpoints exist.";
     }
   } else {
     fetchError = "Not authenticated. Please log in again.";
@@ -176,7 +194,8 @@ export default async function TenantOwnerDashboard({
             </div>
             {soldOut > 0 && (
               <div className="flex items-center gap-1 bg-amber-100/80 text-amber-700 px-2.5 py-1 rounded-full text-[11px] font-bold">
-                <AlertTriangle className="w-3.5 h-3.5" />{soldOut} Sold Out
+                <AlertTriangle className="w-3.5 h-3.5" />
+                {soldOut} Sold Out
               </div>
             )}
           </div>
@@ -187,7 +206,9 @@ export default async function TenantOwnerDashboard({
             <div className="text-3xl font-bold text-slate-900 leading-none mb-1.5">
               {activeMenu}
             </div>
-            <p className="text-slate-500 text-sm">Across {catCount} categories</p>
+            <p className="text-slate-500 text-sm">
+              Across {catCount} categories
+            </p>
           </div>
         </div>
       </div>
@@ -201,7 +222,10 @@ export default async function TenantOwnerDashboard({
               Quick Actions
             </h2>
             <div className="space-y-3">
-              <Link href={`/${domain}/owner/reservations`} className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors group">
+              <Link
+                href={`/${domain}/owner/reservations`}
+                className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors group"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-indigo-600 text-white rounded-md flex items-center justify-center">
                     <Plus className="w-5 h-5" />
@@ -212,7 +236,10 @@ export default async function TenantOwnerDashboard({
                 </div>
                 <ChevronRight className="w-5 h-5 text-slate-300" />
               </Link>
-              <Link href={`/${domain}/owner/menu`} className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors group">
+              <Link
+                href={`/${domain}/owner/menu`}
+                className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors group"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-slate-100 text-slate-500 rounded-md flex items-center justify-center">
                     <FileEdit className="w-4 h-4" />
@@ -223,7 +250,10 @@ export default async function TenantOwnerDashboard({
                 </div>
                 <ChevronRight className="w-5 h-5 text-slate-300" />
               </Link>
-              <Link href={`/${domain}/owner/employees`} className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors group">
+              <Link
+                href={`/${domain}/owner/employees`}
+                className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors group"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-slate-100 text-slate-500 rounded-md flex items-center justify-center">
                     <Users className="w-4 h-4" />
@@ -244,7 +274,10 @@ export default async function TenantOwnerDashboard({
             <h2 className="text-[17px] font-bold text-slate-900">
               Upcoming Reservations
             </h2>
-            <Link href={`/${domain}/owner/reservations`} className="text-indigo-600 font-semibold text-sm hover:text-indigo-700">
+            <Link
+              href={`/${domain}/owner/reservations`}
+              className="text-indigo-600 font-semibold text-sm hover:text-indigo-700"
+            >
               View All
             </Link>
           </div>
@@ -261,7 +294,10 @@ export default async function TenantOwnerDashboard({
               <tbody className="divide-y divide-slate-100">
                 {upcoming.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-slate-500 font-medium">
+                    <td
+                      colSpan={4}
+                      className="px-6 py-8 text-center text-slate-500 font-medium"
+                    >
                       No upcoming reservations found for today.
                     </td>
                   </tr>
@@ -273,7 +309,9 @@ export default async function TenantOwnerDashboard({
                           <div className="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
                             {res.guest_initials || "G"}
                           </div>
-                          <span className="font-bold text-slate-700">{res.guest_name}</span>
+                          <span className="font-bold text-slate-700">
+                            {res.guest_name}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-slate-600 font-medium">
@@ -283,11 +321,15 @@ export default async function TenantOwnerDashboard({
                         {res.party_size} Pax
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`font-bold px-2.5 py-1 rounded-full text-[11px] ${
-                          res.status.toLowerCase() === 'confirmed' ? 'bg-amber-100/70 text-amber-700' :
-                          res.status.toLowerCase() === 'seated' ? 'bg-emerald-100/70 text-emerald-700' :
-                          'bg-indigo-100/70 text-indigo-700'
-                        }`}>
+                        <span
+                          className={`font-bold px-2.5 py-1 rounded-full text-[11px] ${
+                            res.status.toLowerCase() === "confirmed"
+                              ? "bg-amber-100/70 text-amber-700"
+                              : res.status.toLowerCase() === "seated"
+                                ? "bg-emerald-100/70 text-emerald-700"
+                                : "bg-indigo-100/70 text-indigo-700"
+                          }`}
+                        >
                           {res.status}
                         </span>
                       </td>

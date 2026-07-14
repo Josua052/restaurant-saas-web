@@ -3,7 +3,14 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, ChevronDown, Plus, X, UtensilsCrossed, Loader2 } from "lucide-react";
+import {
+  Search,
+  ChevronDown,
+  Plus,
+  X,
+  UtensilsCrossed,
+  Loader2,
+} from "lucide-react";
 import { useProfile } from "@/providers/ProfileProvider";
 
 export interface MenuCategory {
@@ -30,13 +37,18 @@ interface MenuClientProps {
   token: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export default function MenuClient({ domain, menus, categories, token }: MenuClientProps) {
+export default function MenuClient({
+  domain,
+  menus,
+  categories,
+  token,
+}: MenuClientProps) {
   const router = useRouter();
   const { currency } = useProfile();
   const [isCategorySlideOpen, setIsCategorySlideOpen] = useState(false);
-  
+
   // State for Create Category
   const [categoryName, setCategoryName] = useState("");
   const [isCategoryActive, setIsCategoryActive] = useState(true);
@@ -69,9 +81,12 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
   // Filter items based on search and selected category
   const filteredMenus = useMemo(() => {
     return menus.filter((item) => {
-      const matchesSearch = item.Name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            (item.Description && item.Description.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesCategory = selectedCategoryId === "All" || item.CategoryID === selectedCategoryId;
+      const matchesSearch =
+        item.Name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.Description &&
+          item.Description.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesCategory =
+        selectedCategoryId === "All" || item.CategoryID === selectedCategoryId;
       return matchesSearch && matchesCategory;
     });
   }, [menus, searchQuery, selectedCategoryId]);
@@ -91,13 +106,13 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: categoryName.trim(),
           sort_order: 0,
-          is_active: isCategoryActive
-        })
+          is_active: isCategoryActive,
+        }),
       });
 
       const data = await res.json();
@@ -108,7 +123,7 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
 
       // Success!
       setSuccessMsg(`Category "${categoryName.trim()}" created successfully!`);
-      
+
       // Tell Next.js to refresh the server components to get the new category list
       router.refresh();
 
@@ -118,7 +133,6 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
         setIsCategorySlideOpen(false);
         setSuccessMsg("");
       }, 1500);
-      
     } catch (err: any) {
       setErrorMsg(err.message || "An unexpected error occurred");
     } finally {
@@ -171,14 +185,16 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
           />
         </div>
         <div className="relative w-full sm:w-[200px]">
-          <select 
+          <select
             value={selectedCategoryId}
             onChange={(e) => setSelectedCategoryId(e.target.value)}
             className="w-full pl-4 pr-10 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 appearance-none bg-white font-medium text-slate-700 cursor-pointer"
           >
             <option value="All">All Categories</option>
             {categories.map((cat) => (
-              <option key={cat.ID} value={cat.ID}>{cat.Name}</option>
+              <option key={cat.ID} value={cat.ID}>
+                {cat.Name}
+              </option>
             ))}
           </select>
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -197,10 +213,11 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
             No menu items found
           </h3>
           <p className="text-slate-500 max-w-md mb-8">
-            Your menu is currently empty. Get started by adding your first delicious category and item.
+            Your menu is currently empty. Get started by adding your first
+            delicious category and item.
           </p>
           <div className="flex gap-4">
-             <button
+            <button
               onClick={() => setIsCategorySlideOpen(true)}
               className="bg-white border border-slate-300 text-indigo-700 hover:bg-slate-50 px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors"
             >
@@ -218,7 +235,7 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
         </div>
       ) : filteredMenus.length === 0 ? (
         <div className="py-20 text-center">
-           <p className="text-slate-500">No items match your search criteria.</p>
+          <p className="text-slate-500">No items match your search criteria.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -231,7 +248,7 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
               <div className="h-48 bg-slate-100 relative overflow-hidden flex items-center justify-center">
                 {item.ImageURL ? (
                   <img
-                    src={item.ImageURL.replace('minio:9000', 'localhost:9000')}
+                    src={item.ImageURL.replace("minio:9000", "localhost:9000")}
                     alt={item.Name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
@@ -255,10 +272,13 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
                     {item.Name}
                   </h3>
                   <span className="font-bold text-indigo-700 shrink-0">
-                    {new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', {
-                      style: 'currency',
-                      currency: currency
-                    }).format(item.Price)}
+                    {new Intl.NumberFormat(
+                      currency === "IDR" ? "id-ID" : "en-US",
+                      {
+                        style: "currency",
+                        currency: currency,
+                      },
+                    ).format(item.Price)}
                   </span>
                 </div>
                 <p className="text-sm text-slate-500 line-clamp-2 mb-4">
@@ -312,7 +332,6 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
 
             {/* Panel Body */}
             <div className="flex-1 p-6 overflow-y-auto space-y-6">
-              
               {errorMsg && (
                 <div className="bg-rose-50 text-rose-600 px-4 py-3 rounded-lg text-sm font-medium border border-rose-200">
                   {errorMsg}
@@ -337,7 +356,7 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors disabled:opacity-50 disabled:bg-slate-50"
                   placeholder="e.g. Signature Coffee"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleCreateCategory();
+                    if (e.key === "Enter") handleCreateCategory();
                   }}
                 />
               </div>
@@ -362,7 +381,6 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
                   ></div>
                 </button>
               </div>
-              
             </div>
 
             {/* Panel Footer */}

@@ -14,7 +14,7 @@ export default async function TenantDetailPage({
   const { id } = await params;
   const cookieStore = await cookies();
   const token = cookieStore.get("access_token")?.value;
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   if (!token) {
     return notFound();
@@ -25,9 +25,9 @@ export default async function TenantDetailPage({
   try {
     const res = await fetch(`${API_URL}/superadmin/tenants/${id}`, {
       headers: {
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
-      cache: "no-store"
+      cache: "no-store",
     });
 
     if (res.ok) {
@@ -40,9 +40,17 @@ export default async function TenantDetailPage({
       return (
         <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
           <Store className="h-12 w-12 text-slate-300 mb-4" />
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">Failed to load tenant</h2>
-          <p className="text-slate-500 max-w-md">There was a problem retrieving the tenant details from the server. Please try again later.</p>
-          <Link href="/dashboard/tenants" className="mt-6 text-indigo-600 font-medium hover:underline">
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">
+            Failed to load tenant
+          </h2>
+          <p className="text-slate-500 max-w-md">
+            There was a problem retrieving the tenant details from the server.
+            Please try again later.
+          </p>
+          <Link
+            href="/dashboard/tenants"
+            className="mt-6 text-indigo-600 font-medium hover:underline"
+          >
             ← Back to Tenants
           </Link>
         </div>
@@ -62,10 +70,10 @@ export default async function TenantDetailPage({
     if (detail.created_at) {
       const dateObj = new Date(detail.created_at);
       if (!isNaN(dateObj.getTime())) {
-        formattedDate = new Intl.DateTimeFormat('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
+        formattedDate = new Intl.DateTimeFormat("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
         }).format(dateObj);
       } else {
         formattedDate = detail.created_at; // fallback to raw string
@@ -96,7 +104,11 @@ export default async function TenantDetailPage({
       <div className="flex items-center gap-6">
         <div className="h-[72px] w-[72px] bg-white rounded-xl border border-slate-200 shadow-sm flex items-center justify-center shrink-0 overflow-hidden p-1">
           <div className="w-full h-full bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 uppercase font-bold text-xl font-heading">
-            {detail.restaurant_name ? detail.restaurant_name.substring(0, 2) : <Store className="h-8 w-8" />}
+            {detail.restaurant_name ? (
+              detail.restaurant_name.substring(0, 2)
+            ) : (
+              <Store className="h-8 w-8" />
+            )}
           </div>
         </div>
         <div className="space-y-1.5">
@@ -145,7 +157,9 @@ export default async function TenantDetailPage({
                 <dt className="text-slate-500 font-semibold text-[11px] tracking-wider uppercase pt-0.5">
                   Name
                 </dt>
-                <dd className="col-span-2 text-slate-800 font-medium">{detail.restaurant_name}</dd>
+                <dd className="col-span-2 text-slate-800 font-medium">
+                  {detail.restaurant_name}
+                </dd>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <dt className="text-slate-500 font-semibold text-[11px] tracking-wider uppercase pt-0.5">
@@ -159,7 +173,9 @@ export default async function TenantDetailPage({
                 <dt className="text-slate-500 font-semibold text-[11px] tracking-wider uppercase pt-0.5">
                   Cuisine
                 </dt>
-                <dd className="col-span-2 text-slate-400 italic">Not set in system</dd>
+                <dd className="col-span-2 text-slate-400 italic">
+                  Not set in system
+                </dd>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <dt className="text-slate-500 font-semibold text-[11px] tracking-wider uppercase pt-0.5">
@@ -187,7 +203,9 @@ export default async function TenantDetailPage({
                 <dt className="text-slate-500 font-semibold text-[11px] tracking-wider uppercase pt-0.5">
                   Name
                 </dt>
-                <dd className="col-span-2 text-slate-800 font-medium">{detail.owner_name}</dd>
+                <dd className="col-span-2 text-slate-800 font-medium">
+                  {detail.owner_name}
+                </dd>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <dt className="text-slate-500 font-semibold text-[11px] tracking-wider uppercase pt-0.5">
@@ -219,10 +237,10 @@ export default async function TenantDetailPage({
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 px-6">
-          <TenantActionsClient 
-            tenantId={detail.id} 
-            initialStatus={detail.status} 
-            token={token} 
+          <TenantActionsClient
+            tenantId={detail.id}
+            initialStatus={detail.status}
+            token={token}
           />
         </CardContent>
       </Card>

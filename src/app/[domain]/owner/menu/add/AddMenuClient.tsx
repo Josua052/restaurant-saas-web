@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Info, CloudUpload, Archive, Loader2, X } from "lucide-react";
+import {
+  ChevronRight,
+  Info,
+  CloudUpload,
+  Archive,
+  Loader2,
+  X,
+} from "lucide-react";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/providers/ProfileProvider";
@@ -18,14 +25,19 @@ interface AddMenuClientProps {
   token: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export default function AddMenuClient({ domain, categories, token }: AddMenuClientProps) {
+export default function AddMenuClient({
+  domain,
+  categories,
+  token,
+}: AddMenuClientProps) {
   const router = useRouter();
   const { currency } = useProfile();
 
   // Determine currency symbol
-  const currencySymbol = currency === "IDR" ? "Rp" : (currency === "USD" ? "$" : currency);
+  const currencySymbol =
+    currency === "IDR" ? "Rp" : currency === "USD" ? "$" : currency;
 
   // Form State
   const [name, setName] = useState("");
@@ -33,7 +45,7 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [isAvailable, setIsAvailable] = useState(true);
-  
+
   // Photo State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -47,13 +59,13 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      
+
       // Validate size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setErrorMsg("File size must be less than 5MB");
         return;
       }
-      
+
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
       setErrorMsg(""); // Clear errors if any
@@ -81,12 +93,12 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         type: "menu",
-        extension: extension
-      })
+        extension: extension,
+      }),
     });
 
     const presignData = await presignRes.json();
@@ -102,8 +114,8 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
       method: "PUT",
       body: selectedFile,
       headers: {
-        "Content-Type": selectedFile.type
-      }
+        "Content-Type": selectedFile.type,
+      },
     });
 
     if (!uploadRes.ok) {
@@ -117,7 +129,8 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
     // 1. Validation
     if (!name.trim()) return setErrorMsg("Item Name is required");
     if (!categoryId) return setErrorMsg("Category is required");
-    if (!price || isNaN(Number(price))) return setErrorMsg("Valid Price is required");
+    if (!price || isNaN(Number(price)))
+      return setErrorMsg("Valid Price is required");
 
     setIsSubmitting(true);
     setErrorMsg("");
@@ -136,7 +149,7 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: name.trim(),
@@ -145,8 +158,8 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
           description: description.trim(),
           is_available: isAvailable,
           temp_image_path: tempImagePath,
-          sort_order: 0
-        })
+          sort_order: 0,
+        }),
       });
 
       const data = await res.json();
@@ -157,11 +170,10 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
       // Success
       setSuccessMsg("Menu item created successfully! Redirecting...");
       router.refresh();
-      
+
       setTimeout(() => {
         router.push(`/${domain}/owner/menu`);
       }, 1500);
-
     } catch (err: any) {
       setErrorMsg(err.message || "An unexpected error occurred");
       setIsSubmitting(false); // Only re-enable if failed, on success we redirect
@@ -200,12 +212,16 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
             >
               Cancel
             </Link>
-            <button 
+            <button
               onClick={handleSubmit}
               disabled={isSubmitting}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors shadow-sm disabled:opacity-70"
             >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Archive className="w-4 h-4" />
+              )}
               {isSubmitting ? "Saving..." : "Save Menu Item"}
             </button>
           </div>
@@ -258,7 +274,7 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
                   <label className="text-sm font-bold text-slate-700">
                     Category <span className="text-rose-500">*</span>
                   </label>
-                  <select 
+                  <select
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
                     disabled={isSubmitting}
@@ -266,7 +282,9 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
                   >
                     <option value="">Select category</option>
                     {categories.map((cat) => (
-                      <option key={cat.ID} value={cat.ID}>{cat.Name}</option>
+                      <option key={cat.ID} value={cat.ID}>
+                        {cat.Name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -324,20 +342,20 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
               <CloudUpload className="w-5 h-5 text-indigo-600" />
               <h2 className="text-lg font-bold text-slate-900">Menu Photo</h2>
             </div>
-            
-            <input 
-              type="file" 
-              accept="image/png, image/jpeg, image/jpg" 
-              className="hidden" 
+
+            <input
+              type="file"
+              accept="image/png, image/jpeg, image/jpg"
+              className="hidden"
               ref={fileInputRef}
               onChange={handleFileSelect}
               disabled={isSubmitting}
             />
 
             {!previewUrl ? (
-              <div 
+              <div
                 onClick={() => !isSubmitting && fileInputRef.current?.click()}
-                className={`border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center text-center transition-colors group ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'}`}
+                className={`border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center text-center transition-colors group ${isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-50 cursor-pointer"}`}
               >
                 <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-100 transition-colors">
                   <CloudUpload className="w-6 h-6" />
@@ -345,19 +363,21 @@ export default function AddMenuClient({ domain, categories, token }: AddMenuClie
                 <h3 className="text-sm font-bold text-slate-900 mb-1">
                   Upload Menu Photo
                 </h3>
-                <p className="text-xs text-slate-500 mb-4">
-                  Click to browse
-                </p>
+                <p className="text-xs text-slate-500 mb-4">Click to browse</p>
                 <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                   PNG, JPG up to 5MB
                 </span>
               </div>
             ) : (
               <div className="relative rounded-xl overflow-hidden border border-slate-200 aspect-square group">
-                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
                 {!isSubmitting && (
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button 
+                    <button
                       onClick={clearFile}
                       className="bg-white text-rose-600 px-4 py-2 rounded-lg font-medium text-sm shadow flex items-center gap-2 hover:bg-rose-50"
                     >
