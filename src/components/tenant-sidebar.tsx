@@ -12,16 +12,13 @@ import {
   Settings, 
   LogOut
 } from "lucide-react"
+import { useProfile } from "@/providers/ProfileProvider"
 
-interface TenantSidebarProps {
-  restaurantName?: string;
-  branchAddress?: string;
-}
-
-export default function TenantSidebar({ restaurantName, branchAddress }: TenantSidebarProps) {
+export default function TenantSidebar() {
   const pathname = usePathname();
   const params = useParams();
   const domain = params?.domain as string || "";
+  const { restaurantName, branchAddress } = useProfile();
 
   // Helper to check if a route is active
   const isActive = (path: string) => {

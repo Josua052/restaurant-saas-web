@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, ChevronDown, Plus, X, UtensilsCrossed, Loader2 } from "lucide-react";
+import { useProfile } from "@/providers/ProfileProvider";
 
 export interface MenuCategory {
   ID: string;
@@ -33,6 +34,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1
 
 export default function MenuClient({ domain, menus, categories, token }: MenuClientProps) {
   const router = useRouter();
+  const { currency } = useProfile();
   const [isCategorySlideOpen, setIsCategorySlideOpen] = useState(false);
   
   // State for Create Category
@@ -229,7 +231,7 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
               <div className="h-48 bg-slate-100 relative overflow-hidden flex items-center justify-center">
                 {item.ImageURL ? (
                   <img
-                    src={item.ImageURL}
+                    src={item.ImageURL.replace('minio:9000', 'localhost:9000')}
                     alt={item.Name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
@@ -253,7 +255,10 @@ export default function MenuClient({ domain, menus, categories, token }: MenuCli
                     {item.Name}
                   </h3>
                   <span className="font-bold text-indigo-700 shrink-0">
-                    ${item.Price.toFixed(2)}
+                    {new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', {
+                      style: 'currency',
+                      currency: currency
+                    }).format(item.Price)}
                   </span>
                 </div>
                 <p className="text-sm text-slate-500 line-clamp-2 mb-4">

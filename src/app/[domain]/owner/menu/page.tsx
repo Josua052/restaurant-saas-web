@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import MenuClient from "./MenuClient";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default async function MenuPage({ params }: { params: Promise<{ domain: string }> }) {
   const cookieStore = await cookies();
