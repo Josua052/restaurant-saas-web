@@ -8,18 +8,48 @@ import {
 import TenantSidebar from "@/components/tenant-sidebar"
 import UserProfileDropdown from "@/components/user-profile-dropdown"
 
-export default function OwnerLayout({
+import { cookies } from "next/headers"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+
+export default async function OwnerLayout({
   children,
   params,
 }: {
   children: ReactNode
   params: { domain: string }
 }) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("access_token")?.value;
+  
+  let restaurantName = "";
+  let branchAddress = "";
+
+  if (token) {
+    try {
+      const res = await fetch(`${API_URL}/management/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store", // Ensure we always get fresh data
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          restaurantName = json.data.restaurant_name || "";
+          branchAddress = json.data.branch_address || "";
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch owner profile in layout:", e);
+    }
+  }
+
   return (
     <div className="flex h-screen bg-[#f8fafc] font-sans overflow-hidden" suppressHydrationWarning>
       {/* Dynamic Sidebar (Handles mobile hiding and active states internally) */}
-      <TenantSidebar />
-
+      <TenantSidebar 
+        restaurantName={restaurantName} 
+        branchAddress={branchAddress} 
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden" suppressHydrationWarning>

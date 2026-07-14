@@ -13,7 +13,12 @@ import {
   LogOut
 } from "lucide-react"
 
-export default function TenantSidebar() {
+interface TenantSidebarProps {
+  restaurantName?: string;
+  branchAddress?: string;
+}
+
+export default function TenantSidebar({ restaurantName, branchAddress }: TenantSidebarProps) {
   const pathname = usePathname();
   const params = useParams();
   const domain = params?.domain as string || "";
@@ -34,17 +39,21 @@ export default function TenantSidebar() {
     { name: "Menu", href: `/${domain}/owner/menu`, icon: Utensils },
     { name: "Employees", href: `/${domain}/owner/employees`, icon: Users },
   ]
+  
+  // Extract first letter for logo
+  const logoLetter = restaurantName ? restaurantName.charAt(0).toUpperCase() : "R";
+  const displayAddress = branchAddress || "No Address Provided";
 
   return (
     <aside className="hidden md:flex w-[280px] bg-white border-r border-slate-200 flex-col shrink-0 h-full">
       {/* Logo Area */}
       <div className="h-20 flex items-center px-6 gap-3 shrink-0 border-b border-transparent">
         <div className="w-10 h-10 bg-indigo-700 text-white rounded-lg flex items-center justify-center font-bold text-xl shrink-0">
-          K
+          {logoLetter}
         </div>
         <div className="min-w-0">
-          <h2 className="font-bold text-indigo-700 text-lg leading-tight truncate">Kopi Kenangan</h2>
-          <p className="text-xs text-slate-500 font-medium truncate">Jakarta Central Branch</p>
+          <h2 className="font-bold text-indigo-700 text-lg leading-tight truncate">{restaurantName || "Loading..."}</h2>
+          <p className="text-xs text-slate-500 font-medium truncate">{displayAddress}</p>
         </div>
       </div>
 

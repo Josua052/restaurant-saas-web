@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Armchair,
   ClipboardList,
@@ -14,40 +14,105 @@ import {
   Clock,
 } from "lucide-react";
 
-// Mock data to demonstrate the table view. Set to empty array to see the empty state.
-const initialReservations = [
-  { id: 1, name: "John Doe", time: "12:30 PM", pax: 4, status: "Confirmed" },
-  { id: 2, name: "Jane Smith", time: "1:00 PM", pax: 2, status: "Arrived" },
-  { id: 3, name: "Robert Brown", time: "1:15 PM", pax: 6, status: "Pending" },
-  { id: 4, name: "Alice Green", time: "2:00 PM", pax: 2, status: "Confirmed" },
-  { id: 5, name: "Mike Ross", time: "2:30 PM", pax: 4, status: "Pending" },
-];
+// Define Interfaces matching the Go Backend responses
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+}
 
-export default function ReservationsClient() {
+interface Table {
+  id: string;
+  table_number: string;
+  capacity: number;
+}
+
+export interface Reservation {
+  id: string;
+  tenant_id: string;
+  branch_id: string;
+  customer_id: string;
+  customer: Customer;
+  table_id: string;
+  table: Table;
+  reservation_time: string;
+  party_size: number;
+  status: string;
+}
+
+interface ReservationStats {
+  total_reservations: number;
+  upcoming_reservations: Reservation[];
+  pending_confirmations: number;
+}
+
+interface TableStats {
+  total_tables: number;
+  active_tables: number;
+}
+
+interface MenuStats {
+  active_menu_items: number;
+  sold_out_items: number;
+  categories_count: number;
+}
+
+interface ReservationsClientProps {
+  ownerName: string;
+  reservations: Reservation[];
+  reservationStats: ReservationStats;
+  tableStats: TableStats;
+  menuStats: MenuStats;
+}
+
+export default function ReservationsClient({
+  ownerName,
+  reservations,
+  reservationStats,
+  tableStats,
+  menuStats,
+}: ReservationsClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [reservations, setReservations] = useState(initialReservations);
   const [partySize, setPartySize] = useState(2);
+  const [formattedDate, setFormattedDate] = useState("");
 
-  // Toggle for testing empty state
-  const clearReservations = () => setReservations([]);
+  useEffect(() => {
+    // Format date on client to avoid hydration mismatch
+    const options: Intl.DateTimeFormatOptions = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    };
+    setFormattedDate(new Date().toLocaleDateString('en-US', options));
+  }, []);
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Confirmed":
+    switch (status.toLowerCase()) {
+      case "confirmed":
         return (
           <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
             Confirmed
           </span>
         );
-      case "Arrived":
+      case "arrived":
+      case "completed":
         return (
           <span className="inline-flex items-center gap-1.5 bg-indigo-100 text-indigo-700 font-semibold px-3 py-1 rounded-full text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-            Arrived
+            {status}
           </span>
         );
-      case "Pending":
+      case "cancelled":
+        return (
+          <span className="inline-flex items-center gap-1.5 bg-red-100 text-red-700 font-semibold px-3 py-1 rounded-full text-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+            Cancelled
+          </span>
+        );
+      case "pending":
       default:
         return (
           <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-700 font-semibold px-3 py-1 rounded-full text-xs">
@@ -58,14 +123,25 @@ export default function ReservationsClient() {
     }
   };
 
+  const formatTime = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+      return isoString;
+    }
+  };
+
   return (
     <div className="w-full space-y-8">
       {/* Page Header */}
       <div>
         <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">
-          Good morning, Elena Rossi
+          Good morning, {ownerName || "Owner"}
         </h1>
-        <p className="text-slate-500 mt-1">Today is Wednesday, Oct 25, 2023</p>
+        <p className="text-slate-500 mt-1">
+          {formattedDate ? `Today is ${formattedDate}` : "Loading date..."}
+        </p>
       </div>
 
       {/* Metrics Grid */}
@@ -77,17 +153,13 @@ export default function ReservationsClient() {
             <div className="w-10 h-10 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-lg">
               <Armchair className="w-5 h-5" />
             </div>
-            <div className="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[11px] font-bold">
-              <TrendingUp className="w-3 h-3" />
-              +12%
-            </div>
           </div>
           <div className="relative z-10">
             <p className="text-slate-500 text-[11px] font-bold tracking-wider uppercase mb-1">
               Today's Reservations
             </p>
             <div className="text-3xl font-bold text-slate-900 leading-none">
-              42
+              {reservationStats.total_reservations}
             </div>
           </div>
         </div>
@@ -98,14 +170,16 @@ export default function ReservationsClient() {
             <div className="w-10 h-10 bg-amber-50 text-amber-600 flex items-center justify-center rounded-lg">
               <ClipboardList className="w-5 h-5" />
             </div>
-            <div className="w-2.5 h-2.5 bg-amber-500 rounded-full mt-2 mr-2 ring-4 ring-amber-50"></div>
+            {reservationStats.pending_confirmations > 0 && (
+              <div className="w-2.5 h-2.5 bg-amber-500 rounded-full mt-2 mr-2 ring-4 ring-amber-50"></div>
+            )}
           </div>
           <div>
             <p className="text-slate-500 text-[11px] font-bold tracking-wider uppercase mb-1">
               Pending Confirmations
             </p>
             <div className="text-3xl font-bold text-slate-900 leading-none">
-              5
+              {reservationStats.pending_confirmations}
             </div>
           </div>
         </div>
@@ -123,14 +197,14 @@ export default function ReservationsClient() {
             </p>
             <div className="flex items-baseline gap-2 mb-3">
               <div className="text-3xl font-bold text-slate-900 leading-none">
-                18
+                {tableStats.active_tables}
               </div>
-              <div className="text-slate-400 font-medium text-sm">/ 24</div>
+              <div className="text-slate-400 font-medium text-sm">/ {tableStats.total_tables}</div>
             </div>
             <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
               <div
-                className="bg-slate-700 h-full rounded-full"
-                style={{ width: "75%" }}
+                className="bg-slate-700 h-full rounded-full transition-all duration-500"
+                style={{ width: `${tableStats.total_tables > 0 ? (tableStats.active_tables / tableStats.total_tables) * 100 : 0}%` }}
               ></div>
             </div>
           </div>
@@ -148,7 +222,7 @@ export default function ReservationsClient() {
               Total Menu Items
             </p>
             <div className="text-3xl font-bold text-slate-900 leading-none">
-              86
+              {menuStats.active_menu_items}
             </div>
           </div>
         </div>
@@ -162,14 +236,6 @@ export default function ReservationsClient() {
             Today's Reservations
           </h2>
           <div className="flex items-center gap-3">
-            {reservations.length > 0 && (
-              <button
-                onClick={clearReservations}
-                className="text-xs text-slate-400 hover:text-slate-600 underline"
-              >
-                Test Empty State
-              </button>
-            )}
             <button
               onClick={() => setIsModalOpen(true)}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors"
@@ -208,6 +274,7 @@ export default function ReservationsClient() {
                 <tr>
                   <th className="px-6 py-4 font-bold text-left">Guest Name</th>
                   <th className="px-6 py-4 font-bold">Time</th>
+                  <th className="px-6 py-4 font-bold">Table</th>
                   <th className="px-6 py-4 font-bold">Party Size</th>
                   <th className="px-6 py-4 font-bold">Status</th>
                   <th className="px-6 py-4 font-bold">Actions</th>
@@ -220,13 +287,16 @@ export default function ReservationsClient() {
                     className="hover:bg-slate-50/50 transition-colors"
                   >
                     <td className="px-6 py-4 text-left font-bold text-slate-700">
-                      {res.name}
+                      {res.customer?.name || "Walk-in Guest"}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 font-medium whitespace-nowrap">
+                      {formatTime(res.reservation_time)}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 font-medium whitespace-nowrap">
+                      {res.table?.table_number || "-"}
                     </td>
                     <td className="px-6 py-4 text-slate-600 font-medium">
-                      {res.time}
-                    </td>
-                    <td className="px-6 py-4 text-slate-600 font-medium">
-                      {res.pax} Pax
+                      {res.party_size} Pax
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-center">
@@ -338,8 +408,9 @@ export default function ReservationsClient() {
                   </div>
                   <input
                     type="text"
-                    defaultValue="10/27/2023"
+                    defaultValue={formattedDate}
                     className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-slate-700"
+                    disabled
                   />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
