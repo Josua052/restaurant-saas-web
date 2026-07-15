@@ -8,9 +8,18 @@ export async function fetchAuth(input: RequestInfo | URL, init?: RequestInit): P
   // If the token is expired or unauthorized
   if (response.status === 401) {
     try {
+      // Determine scope based on URL path
+      const scope = typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard') 
+        ? "admin" 
+        : "tenant";
+
       // Attempt to refresh the token using our internal API route
       const refreshResponse = await fetch("/api/auth/refresh", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ scope }),
       });
 
       if (refreshResponse.ok) {

@@ -13,6 +13,7 @@ import {
   Clock,
   Loader2,
   Camera,
+  AlertCircle,
 } from "lucide-react";
 
 interface SettingsClientProps {
@@ -321,17 +322,12 @@ export default function SettingsClient({ token }: SettingsClientProps) {
                       <input
                         type="text"
                         value={draftData.restaurantName}
-                        onChange={(e) =>
-                          setDraftData({
-                            ...draftData,
-                            restaurantName: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
+                        disabled
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed"
                       />
-                      <p className="text-xs text-slate-500 mt-2 font-medium">
-                        This name will be displayed on receipts and
-                        customer-facing interfaces.
+                      <p className="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        To change the restaurant name, please submit a request to the Super Admin.
                       </p>
                     </>
                   ) : (

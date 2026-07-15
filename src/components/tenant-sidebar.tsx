@@ -26,6 +26,10 @@ export default function TenantSidebar() {
     try {
       const res = await fetch("/api/auth/logout", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ scope: "tenant" }),
       });
       const targetLoginUrl = domain ? `/${domain}/login` : "/login";
       if (res.ok) {

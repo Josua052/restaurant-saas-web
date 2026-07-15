@@ -30,8 +30,13 @@ export default function UserProfileDropdown({
   const handleLogout = async () => {
     try {
       setIsOpen(false);
+      const scope = window.location.pathname.startsWith('/dashboard') ? 'admin' : 'tenant';
       const res = await fetch("/api/auth/logout", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ scope }),
       });
       if (res.ok) {
         router.push(targetLoginUrl);

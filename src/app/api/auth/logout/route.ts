@@ -11,23 +11,36 @@ export async function POST(request: Request) {
     const adminAccessToken = cookieStore.get("admin_access_token")?.value;
     const adminRefreshToken = cookieStore.get("admin_refresh_token")?.value;
 
-    const currentAccessToken = accessToken || adminAccessToken;
-    const currentRefreshToken = refreshToken || adminRefreshToken;
+    const body = await request.json().catch(() => ({}));
+    const scope = body.scope || "tenant";
 
     // Notify backend to blacklist the token
-    if (currentAccessToken && currentRefreshToken) {
+    if (scope === "admin" && adminAccessToken) {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       if (API_URL) {
-        const logoutEndpoint = adminAccessToken ? "/superadmin/auth/logout" : "/management/auth/logout";
-        await fetch(`${API_URL}${logoutEndpoint}`, {
+        await fetch(`${API_URL}/superadmin/auth/logout`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${currentAccessToken}`,
+            "Authorization": `Bearer ${adminAccessToken}`,
           },
-          body: JSON.stringify({ refresh_token: currentRefreshToken }),
+          body: JSON.stringify({ refresh_token: adminRefreshToken }),
         }).catch((err) => {
-          console.error("Failed to notify backend of logout:", err);
+          console.error("Failed to notify backend of admin logout:", err);
+        });
+      }
+    } else if (scope === "tenant" && accessToken) {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      if (API_URL) {
+        await fetch(`${API_URL}/management/auth/logout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        }).catch((err) => {
+          console.error("Failed to notify backend of tenant logout:", err);
         });
       }
     }
@@ -38,11 +51,14 @@ export async function POST(request: Request) {
       { status: 200 }
     );
 
-    // Clear cookies by deleting them
-    cookieStore.delete("access_token");
-    cookieStore.delete("refresh_token");
-    cookieStore.delete("admin_access_token");
-    cookieStore.delete("admin_refresh_token");
+    // Clear cookies based on scope
+    if (scope === "admin") {
+      cookieStore.delete("admin_access_token");
+      cookieStore.delete("admin_refresh_token");
+    } else {
+      cookieStore.delete("access_token");
+      cookieStore.delete("refresh_token");
+    }
 
     return response;
   } catch (error) {

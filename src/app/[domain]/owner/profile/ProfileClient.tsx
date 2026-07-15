@@ -90,7 +90,7 @@ export default function ProfileClient({ token }: { token?: string }) {
     setShowConfirmModal(false);
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      const res = await fetch(`${API_URL}/management/auth/profile`, {
+      const res = await fetch(`${API_URL}/management/auth/me`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

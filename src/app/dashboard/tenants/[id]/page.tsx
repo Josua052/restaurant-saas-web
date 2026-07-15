@@ -102,14 +102,22 @@ export default async function TenantDetailPage({
 
       {/* Header Profile */}
       <div className="flex items-center gap-6">
-        <div className="h-[72px] w-[72px] bg-white rounded-xl border border-slate-200 shadow-sm flex items-center justify-center shrink-0 overflow-hidden p-1">
-          <div className="w-full h-full bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 uppercase font-bold text-xl font-heading">
-            {detail.restaurant_name ? (
-              detail.restaurant_name.substring(0, 2)
-            ) : (
-              <Store className="h-8 w-8" />
-            )}
-          </div>
+        <div className="h-16 w-auto flex items-center justify-center shrink-0 overflow-hidden p-1">
+          {detail.logo_url ? (
+            <img
+              src={detail.logo_url}
+              alt={`${detail.restaurant_name} Logo`}
+              className="w-full h-full object-cover rounded-lg"
+            />
+          ) : (
+            <div className="w-full h-full bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 uppercase font-bold text-xl font-heading">
+              {detail.restaurant_name ? (
+                detail.restaurant_name.substring(0, 2)
+              ) : (
+                <Store className="h-8 w-8" />
+              )}
+            </div>
+          )}
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center gap-4">
