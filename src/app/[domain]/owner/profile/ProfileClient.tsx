@@ -13,6 +13,7 @@ export default function ProfileClient({ token }: { token?: string }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Personal Info Form State
   const [personalData, setPersonalData] = useState({
@@ -79,12 +80,17 @@ export default function ProfileClient({ token }: { token?: string }) {
     setIsEditing(false);
   };
 
-  const handleSavePersonal = async () => {
+  const handleSavePersonal = () => {
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSavePersonal = async () => {
     if (!token) return;
     setIsSaving(true);
+    setShowConfirmModal(false);
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      const res = await fetch(`${API_URL}/management/auth/me`, {
+      const res = await fetch(`${API_URL}/management/auth/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -401,6 +407,35 @@ export default function ProfileClient({ token }: { token?: string }) {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm relative z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Confirm Update</h3>
+              <p className="text-slate-500 text-sm">
+                Are you sure you want to update your profile information?
+              </p>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 font-medium text-slate-700 hover:bg-slate-200 bg-slate-100 rounded-lg transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSavePersonal}
+                className="px-4 py-2 font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors text-sm shadow-sm"
+              >
+                Yes, Update
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Notification Modal */}
       {showSuccessModal && (

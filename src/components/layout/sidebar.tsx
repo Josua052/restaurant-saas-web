@@ -1,29 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
-  UserPlus,
-  Settings,
-  HelpCircle,
-  Plus,
+  LogOut,
 } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Tenants", href: "/dashboard/tenants", icon: Users },
 ];
 
-const footerItems = [
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
-  { name: "Support", href: "#", icon: HelpCircle },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+      if (res.ok) {
+        router.push("/login");
+      } else {
+        router.push("/login");
+      }
+    } catch (err) {
+      router.push("/login");
+    }
+  };
 
   return (
     <div className="flex h-full w-full flex-col border-r border-slate-200 bg-white">
@@ -43,7 +51,7 @@ export function Sidebar() {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 space-y-1 px-4">
+      <nav className="flex-1 space-y-1.5 px-4 mt-2">
         {navItems.map((item) => {
           const isActive = item.href === "/dashboard" 
             ? pathname === "/dashboard" 
@@ -52,15 +60,15 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 rounded-md px-3 py-2.5 lg:py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
                 isActive
-                  ? "bg-indigo-50 text-indigo-600"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
               <item.icon
-                className={`h-4 w-4 shrink-0 ${
-                  isActive ? "text-indigo-600" : "text-slate-400"
+                className={`w-5 h-5 ${
+                  isActive ? "text-white" : "text-slate-400"
                 }`}
               />
               {item.name}
@@ -69,20 +77,15 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer Navigation */}
-      <div className="border-t border-slate-200 p-4">
-        <nav className="space-y-1">
-          {footerItems.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="flex items-center gap-3 rounded-md px-3 py-2.5 lg:py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-            >
-              <item.icon className="h-4 w-4 shrink-0 text-slate-400" />
-              {item.name}
-            </Link>
-          ))}
-        </nav>
+      {/* Bottom Nav */}
+      <div className="p-4 border-t border-slate-100 flex flex-col gap-1.5 shrink-0">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors w-full text-left"
+        >
+          <LogOut className="w-5 h-5" />
+          Logout
+        </button>
       </div>
     </div>
   );

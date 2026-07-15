@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Lock, Star } from "lucide-react";
+import { Eye, EyeOff, Lock, Star, CheckCircle, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // Define the interface based on the Go backend User entity
 export interface UserProfile {
@@ -23,13 +24,21 @@ export interface UserProfile {
 
 interface ProfileClientProps {
   userProfile?: UserProfile | null;
+  token?: string;
 }
 
-export default function ProfileClient({ userProfile }: ProfileClientProps) {
+export default function ProfileClient({ userProfile, token }: ProfileClientProps) {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Personal Info Form State (Hydrated from Server Data)
   const [personalData, setPersonalData] = useState({
@@ -52,9 +61,43 @@ export default function ProfileClient({ userProfile }: ProfileClientProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSavePersonalInfo = () => {
-    setPersonalData(draftPersonalData);
-    setIsEditing(false);
-    alert("Profile updated successfully!");
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSavePersonalInfo = async () => {
+    if (!token) return;
+    setIsSaving(true);
+    setShowConfirmModal(false);
+    
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_URL}/superadmin/auth/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: draftPersonalData.fullName,
+          email: draftPersonalData.email,
+        }),
+      });
+
+      if (res.ok) {
+        setPersonalData(draftPersonalData);
+        setIsEditing(false);
+        setShowSuccessModal(true);
+        setTimeout(() => setShowSuccessModal(false), 2000);
+        router.refresh();
+      } else {
+        const errData = await res.json();
+        alert(`Error: ${errData.message || "Failed to update profile"}`);
+      }
+    } catch (error) {
+      console.error("Failed to update profile", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -62,12 +105,40 @@ export default function ProfileClient({ userProfile }: ProfileClientProps) {
     setIsEditing(false);
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Password changed successfully!");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    if (!token) return;
+    setIsSavingPassword(true);
+    
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_URL}/superadmin/auth/password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          old_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+
+      if (res.ok) {
+        setShowSuccessModal(true);
+        setTimeout(() => setShowSuccessModal(false), 2000);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        const errData = await res.json();
+        alert(`Error: ${errData.message || "Failed to change password"}`);
+      }
+    } catch (error) {
+      console.error("Failed to change password", error);
+    } finally {
+      setIsSavingPassword(false);
+    }
   };
 
   const isPasswordFormFilled =
@@ -323,19 +394,59 @@ export default function ProfileClient({ userProfile }: ProfileClientProps) {
             <div className="pt-4 flex justify-end max-w-xl">
               <button
                 type="submit"
-                disabled={!isPasswordFormFilled || !isPasswordsMatch}
-                className={`px-5 py-2.5 text-sm font-medium rounded-lg shadow-sm transition-colors ${
+                disabled={!isPasswordFormFilled || !isPasswordsMatch || isSavingPassword}
+                className={`px-5 py-2.5 text-sm font-medium rounded-lg shadow-sm transition-colors flex items-center gap-2 ${
                   isPasswordFormFilled && isPasswordsMatch
-                    ? "text-white bg-indigo-600 hover:bg-indigo-700"
+                    ? "text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70"
                     : "text-slate-400 bg-slate-100 cursor-not-allowed"
                 }`}
               >
-                Change Password
+                {isSavingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isSavingPassword ? "Changing..." : "Change Password"}
               </button>
             </div>
           </form>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm relative z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Confirm Update</h3>
+              <p className="text-slate-500 text-sm">
+                Are you sure you want to update your profile information?
+              </p>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 font-medium text-slate-700 hover:bg-slate-200 bg-slate-100 rounded-lg transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSavePersonalInfo}
+                disabled={isSaving}
+                className="px-4 py-2 font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors text-sm shadow-sm flex items-center gap-2 disabled:opacity-70"
+              >
+                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isSaving ? "Updating..." : "Yes, Update"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Notification Modal */}
+      {showSuccessModal && (
+        <div className="fixed bottom-8 right-8 bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 z-50">
+          <CheckCircle className="w-5 h-5" />
+          <p className="font-bold">Profile updated successfully!</p>
+        </div>
+      )}
     </div>
   );
 }

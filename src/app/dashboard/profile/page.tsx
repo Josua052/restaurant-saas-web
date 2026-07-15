@@ -16,7 +16,7 @@ export default async function SuperAdminProfilePage() {
 
   if (token) {
     try {
-      const res = await fetch(`${API_URL}/management/auth/me`, {
+      const res = await fetch(`${API_URL}/superadmin/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -35,7 +35,7 @@ export default async function SuperAdminProfilePage() {
 
   return (
     <div className="w-full">
-      <ProfileClient userProfile={userProfile} />
+      <ProfileClient userProfile={userProfile} token={token} />
     </div>
   );
 }

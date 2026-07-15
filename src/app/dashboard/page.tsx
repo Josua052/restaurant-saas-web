@@ -55,9 +55,23 @@ export default async function DashboardPage() {
 
   let stats: DashboardStatsResponse | null = null;
   let fetchError = null;
+  let adminName = "Admin";
 
   if (token) {
     try {
+      // Fetch admin profile to get name
+      const profileRes = await fetch(`${API_URL}/superadmin/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+
+      if (profileRes.ok) {
+        const profileJson = await profileRes.json();
+        adminName = profileJson.data?.name || profileJson.data?.Name || "Admin";
+      }
+
       // Using cache: "no-store" to ensure real-time data freshness
       const res = await fetch(`${API_URL}/superadmin/dashboard/stats`, {
         headers: {
@@ -131,6 +145,17 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
+        <div>
+          <h1 className="text-[28px] font-bold text-slate-900 font-heading tracking-tight">
+            Welcome back, {adminName}
+          </h1>
+          <p className="text-slate-500 mt-1 text-sm md:text-base">
+            Here's an overview of your SaaS tenants and statistics.
+          </p>
+        </div>
+      </div>
+
       {fetchError && (
         <div className="p-4 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 border border-red-200">
           <AlertCircle className="w-5 h-5" />

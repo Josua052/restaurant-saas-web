@@ -18,7 +18,8 @@ export async function POST(request: Request) {
     if (currentAccessToken && currentRefreshToken) {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       if (API_URL) {
-        await fetch(`${API_URL}/management/auth/logout`, {
+        const logoutEndpoint = adminAccessToken ? "/superadmin/auth/logout" : "/management/auth/logout";
+        await fetch(`${API_URL}${logoutEndpoint}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
