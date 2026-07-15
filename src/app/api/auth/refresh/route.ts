@@ -51,8 +51,16 @@ export async function POST(request: Request) {
         cookieStore.delete("refresh_token");
       }
 
+      // Check if the error indicates a suspended account
+      const errorMsg = (data.message || data.errors?.detail || "").toLowerCase();
+      const isSuspended = errorMsg.includes("suspended");
+
       return NextResponse.json(
-        { success: false, message: "Session expired, please login again" },
+        { 
+          success: false, 
+          message: isSuspended ? "Account suspended" : "Session expired, please login again",
+          isSuspended 
+        },
         { status: 401 }
       );
     }

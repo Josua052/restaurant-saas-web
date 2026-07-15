@@ -24,17 +24,35 @@ export async function fetchAuth(input: RequestInfo | URL, init?: RequestInit): P
 
       if (refreshResponse.ok) {
         // If refresh was successful, the Next.js API route has updated the HTTP-Only cookies.
-        // We can now retry the original request.
-        
-        // Note: For requests like POST that consume a body stream, retrying native fetch
-        // might fail if the body was already consumed or is a stream. For typical JSON requests
-        // where `init.body` is a string, it will work fine.
         response = await fetch(input, init);
       } else {
-        // Refresh failed, meaning the session is truly expired
-        // You might want to redirect to login here, or let the component handle it
+        // Refresh failed, check why
+        let isSuspended = false;
+        try {
+          const refreshData = await refreshResponse.json();
+          isSuspended = refreshData.isSuspended === true;
+        } catch (e) {
+          // Ignore JSON parse error if any
+        }
+
         if (typeof window !== 'undefined') {
-          window.location.href = "/login";
+          // Redirect to login, appending suspended query param if needed
+          // We can use the current domain scope if it's a tenant login
+          const currentPath = window.location.pathname;
+          let redirectUrl = "/login";
+          
+          if (!currentPath.startsWith('/dashboard')) {
+             const domain = currentPath.split('/')[1];
+             if (domain && domain !== 'login') {
+               redirectUrl = `/${domain}/login`;
+             }
+          }
+
+          if (isSuspended) {
+            redirectUrl += "?suspended=true";
+          }
+          
+          window.location.href = redirectUrl;
         }
       }
     } catch (error) {
