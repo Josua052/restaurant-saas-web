@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 
 interface ReservationStats {
@@ -73,6 +74,10 @@ export default async function TenantOwnerDashboard({
         }),
       ]);
 
+      if (resReservations.status === 401 || resTables.status === 401 || resMenus.status === 401) {
+        redirect(`/${domain}/login`);
+      }
+
       if (!resReservations.ok || !resTables.ok || !resMenus.ok) {
         // Detailed error logging for debugging
         const errDetails = await Promise.all([
@@ -107,9 +112,8 @@ export default async function TenantOwnerDashboard({
         "Network error. Make sure the backend is running and endpoints exist.";
     }
   } else {
-    fetchError = "Not authenticated. Please log in again.";
+    redirect(`/${domain}/login`);
   }
-
   // Fallbacks if data is null (e.g. backend not ready)
   const totalRes = reservationStats?.total_reservations || 0;
   const activeTab = tableStats?.active_tables || 0;

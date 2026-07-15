@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -17,8 +17,27 @@ import { useProfile } from "@/providers/ProfileProvider";
 export default function TenantSidebar() {
   const pathname = usePathname();
   const params = useParams();
+  const router = useRouter();
   const domain = (params?.domain as string) || "";
   const { restaurantName, branchAddress, logoUrl } = useProfile();
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+      const targetLoginUrl = domain ? `/${domain}/login` : "/login";
+      if (res.ok) {
+        router.push(targetLoginUrl);
+      } else {
+        router.push(targetLoginUrl);
+      }
+    } catch (err) {
+      const targetLoginUrl = domain ? `/${domain}/login` : "/login";
+      router.push(targetLoginUrl);
+    }
+  };
 
   // Helper to check if a route is active
   const isActive = (path: string) => {
@@ -114,13 +133,13 @@ export default function TenantSidebar() {
           />
           Settings
         </Link>
-        <Link
-          href="#"
-          className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors"
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors w-full text-left"
         >
           <LogOut className="w-5 h-5" />
           Logout
-        </Link>
+        </button>
       </div>
     </aside>
   );

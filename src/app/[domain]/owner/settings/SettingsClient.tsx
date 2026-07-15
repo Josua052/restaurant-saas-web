@@ -53,7 +53,7 @@ export default function SettingsClient({ token }: SettingsClientProps) {
   const fetchSettings = async () => {
     try {
       const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+        process.env.NEXT_PUBLIC_API_URL;
       const res = await fetch(`${API_URL}/management/tenant/settings`, {
         headers: {
           Authorization: `Bearer ${token}`,

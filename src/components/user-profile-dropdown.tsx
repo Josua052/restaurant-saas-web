@@ -2,63 +2,109 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { User, LogOut } from "lucide-react"
+import { useParams, useRouter } from "next/navigation"
+import { User, LogOut, Settings } from "lucide-react"
 
 interface UserProfileDropdownProps {
   profileHref: string;
   avatarSrc?: string;
   fallbackText?: string;
+  restaurantName?: string;
+  branchAddress?: string;
 }
 
 export default function UserProfileDropdown({ 
   profileHref, 
   avatarSrc = "https://i.pravatar.cc/150?img=32",
-  fallbackText = "U"
+  fallbackText = "U",
+  restaurantName = "My Restaurant",
+  branchAddress = "Admin Account"
 }: UserProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const router = useRouter()
+  const params = useParams()
+  
+  const domain = params?.domain as string;
+  const targetLoginUrl = domain ? `/${domain}/login` : "/login";
+
+  const handleLogout = async () => {
+    try {
+      setIsOpen(false);
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+      if (res.ok) {
+        router.push(targetLoginUrl);
+      } else {
+        console.error("Logout failed on server");
+        router.push(targetLoginUrl);
+      }
+    } catch (err) {
+      console.error("Logout request failed:", err);
+      router.push(targetLoginUrl);
+    }
+  };
 
   return (
-    <div className="relative ml-2">
-      {/* Avatar Button */}
+    <div className="relative">
+      {/* Profile Trigger Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-9 h-9 rounded-full bg-indigo-100 border border-slate-300 overflow-hidden hover:ring-2 hover:ring-indigo-500 hover:ring-offset-2 transition-all cursor-pointer focus:outline-none flex items-center justify-center text-indigo-700 font-medium text-xs"
+        className="flex items-center gap-3 p-1.5 rounded-full hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
       >
-        {avatarSrc ? (
-          <img src={avatarSrc} alt="User avatar" className="w-full h-full object-cover" />
-        ) : (
-          fallbackText
-        )}
+        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-inner overflow-hidden">
+          {avatarSrc ? (
+            <img src={avatarSrc} alt={restaurantName} className="w-full h-full object-cover" />
+          ) : (
+            fallbackText
+          )}
+        </div>
       </button>
 
       {/* Dropdown Menu */}
       {isOpen && (
         <>
-          {/* Invisible Overlay to close when clicking outside */}
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
           
-          <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 shadow-xl rounded-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-            <Link 
-              href={profileHref}
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
-            >
-              <User className="w-4 h-4" />
-              My Profile
-            </Link>
-            
-            <div className="h-px bg-slate-100 my-1"></div>
-            
-            <button 
-              onClick={() => {
-                setIsOpen(false);
-                alert("Logging out...");
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
+          <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* User Info Header */}
+            <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+              <p className="text-sm font-bold text-slate-900 truncate">
+                {restaurantName}
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5 truncate">
+                {branchAddress}
+              </p>
+            </div>
+
+            <div className="p-1.5">
+              <Link 
+                href={profileHref}
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              >
+                <User className="w-4 h-4" />
+                My Profile
+              </Link>
+              <Link 
+                href="/settings"
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                Settings
+              </Link>
+            </div>
+
+            <div className="p-1.5 border-t border-slate-100 bg-slate-50/50">
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            </div>
           </div>
         </>
       )}

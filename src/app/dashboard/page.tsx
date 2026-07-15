@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Building2,
@@ -65,6 +66,10 @@ export default async function DashboardPage() {
         cache: "no-store",
       });
 
+      if (res.status === 401) {
+        redirect("/login");
+      }
+
       if (res.ok) {
         const json = await res.json();
         stats = json.data;
@@ -76,6 +81,8 @@ export default async function DashboardPage() {
       console.error("Dashboard Stats Fetch Error:", error);
       fetchError = "Network error. Make sure the backend is running.";
     }
+  } else {
+    redirect("/login");
   }
 
   // Formatting utility for Date
