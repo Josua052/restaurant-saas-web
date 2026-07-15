@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Pencil,
   Save,
@@ -10,24 +11,119 @@ import {
   Globe2,
   MapPin,
   Clock,
+  Loader2,
+  Camera,
 } from "lucide-react";
 
-export default function SettingsClient() {
+interface SettingsClientProps {
+  token: string;
+}
+
+export default function SettingsClient({ token }: SettingsClientProps) {
+  const router = useRouter();
+
+  // UI State
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview] = useState("");
+  const [tempLogoPath, setTempLogoPath] = useState("");
 
   // Form State
   const [formData, setFormData] = useState({
-    restaurantName: "Kopi Kenangan",
-    phone: "+62 811 1234 5678",
-    address:
-      "Menara Standard Chartered, Lt. 32.\nJl. Prof. DR. Satrio No.164, Jakarta Selatan, 12930",
-    currency: "IDR - Indonesian Rupiah",
-    timezone: "Asia/Jakarta (WIB)",
-    domain: "menu.kopikenangan.com",
+    restaurantName: "",
+    phone: "",
+    address: "",
+    currency: "USD",
+    timezone: "UTC",
+    domain: "",
   });
 
   // Temporary state for when user is typing, before they click Save
   const [draftData, setDraftData] = useState(formData);
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+      const res = await fetch(`${API_URL}/management/tenant/settings`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const result = await res.json();
+        const data = result.data;
+        const mappedData = {
+          restaurantName: data.restaurant_name || "",
+          phone: data.phone || "",
+          address: data.address || "",
+          currency: data.currency || "USD",
+          timezone: data.timezone || "UTC",
+          domain: data.custom_domain || "",
+          logo_url: data.logo_url || "",
+        };
+        setFormData(mappedData);
+        setDraftData(mappedData);
+        setLogoPreview(data.logo_url || "");
+      }
+    } catch (error) {
+      console.error("Failed to fetch store settings:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    setLogoPreview(previewUrl);
+
+    setIsUploadingLogo(true);
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const ext = file.name.substring(file.name.lastIndexOf("."));
+
+      const resUrl = await fetch(`${API_URL}/management/media/upload-url`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type: "logo", extension: ext }),
+      });
+
+      if (!resUrl.ok) throw new Error("Failed to get upload URL");
+      const { data } = await resUrl.json();
+
+      const resUpload = await fetch(data.presigned_url, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      if (!resUpload.ok) throw new Error("Failed to upload image");
+      setTempLogoPath(data.temp_path);
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      alert("Failed to upload logo. Please try again.");
+      // revert preview
+      // @ts-ignore
+      setLogoPreview(formData.logo_url);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
 
   const handleEdit = () => {
     setDraftData(formData); // Reset draft to current saved data
@@ -38,11 +134,50 @@ export default function SettingsClient() {
     setIsEditing(false);
   };
 
-  const handleSave = () => {
-    setFormData(draftData);
-    setIsEditing(false);
-    // Optional: add a toast notification here in a real app
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_URL}/management/tenant/settings`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          restaurant_name: draftData.restaurantName,
+          phone: draftData.phone,
+          address: draftData.address,
+          currency: draftData.currency,
+          timezone: draftData.timezone,
+          temp_logo_path: tempLogoPath,
+        }),
+      });
+
+      if (res.ok) {
+        setFormData(draftData);
+        setIsEditing(false);
+        setShowSuccessModal(true);
+        // Refresh the server components to update global context like ProfileProvider
+        router.refresh();
+      } else {
+        console.error("Failed to save store settings");
+      }
+    } catch (error) {
+      console.error("Error saving store settings:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
 
   return (
     <div suppressHydrationWarning className="w-full space-y-8">
@@ -63,15 +198,21 @@ export default function SettingsClient() {
             <>
               <button
                 onClick={handleCancel}
-                className="px-5 py-2.5 border border-slate-300 bg-white text-slate-700 rounded-lg font-medium text-sm hover:bg-slate-50 transition-colors shadow-sm"
+                disabled={isSaving}
+                className="px-5 py-2.5 border border-slate-300 bg-white text-slate-700 rounded-lg font-medium text-sm hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors shadow-sm"
+                disabled={isSaving}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
               >
-                <Save className="w-4 h-4" />
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
                 Save Changes
               </button>
             </>
@@ -102,34 +243,66 @@ export default function SettingsClient() {
               {/* Logo Area */}
               <div className="shrink-0 flex flex-col items-center gap-3">
                 {isEditing ? (
-                  <div className="w-24 h-24 rounded-full border-2 border-dashed border-indigo-200 bg-indigo-50 flex items-center justify-center cursor-pointer hover:bg-indigo-100 transition-colors">
-                    <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider text-center px-2">
-                      Update Logo
-                    </span>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative w-24 h-24 rounded-full border-2 border-dashed border-indigo-200 bg-indigo-50 flex items-center justify-center cursor-pointer hover:bg-indigo-100 transition-colors overflow-hidden group"
+                  >
+                    {logoPreview ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={logoPreview} alt="Logo Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Camera className="w-6 h-6 text-white" />
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider text-center px-2">
+                        Upload Logo
+                      </span>
+                    )}
+                    {isUploadingLogo && (
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="w-24 h-24 rounded-full border border-slate-200 bg-white overflow-hidden p-2 flex items-center justify-center shadow-sm">
-                    <div className="text-slate-300">
-                      {/* Placeholder Coffee Icon for Logo */}
-                      <svg
-                        width="48"
-                        height="48"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
-                        <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
-                        <line x1="6" x2="6" y1="2" y2="4" />
-                        <line x1="10" x2="10" y1="2" y2="4" />
-                        <line x1="14" x2="14" y1="2" y2="4" />
-                      </svg>
-                    </div>
+                    {logoPreview ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={logoPreview} alt="Restaurant Logo" className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      <div className="text-slate-300">
+                        {/* Placeholder Coffee Icon for Logo */}
+                        <svg
+                          width="48"
+                          height="48"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+                          <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+                          <line x1="6" x2="6" y1="2" y2="4" />
+                          <line x1="10" x2="10" y1="2" y2="4" />
+                          <line x1="14" x2="14" y1="2" y2="4" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                 )}
+                
+                {/* Hidden file input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleLogoSelect}
+                  accept="image/png, image/jpeg, image/jpg"
+                  className="hidden"
+                />
                 {!isEditing && (
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     Restaurant Logo
@@ -163,7 +336,7 @@ export default function SettingsClient() {
                     </>
                   ) : (
                     <p className="text-slate-900 font-bold text-lg">
-                      {formData.restaurantName}
+                      {formData.restaurantName || "Not set"}
                     </p>
                   )}
                 </div>
@@ -188,7 +361,7 @@ export default function SettingsClient() {
                     </div>
                   ) : (
                     <p className="text-slate-700 font-medium">
-                      {formData.phone}
+                      {formData.phone || "Not set"}
                     </p>
                   )}
                 </div>
@@ -221,7 +394,7 @@ export default function SettingsClient() {
               />
             ) : (
               <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-line">
-                {formData.address}
+                {formData.address || "Not set"}
               </p>
             )}
           </div>
@@ -249,13 +422,9 @@ export default function SettingsClient() {
                   }
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors bg-white cursor-pointer appearance-none"
                 >
-                  <option value="IDR - Indonesian Rupiah">
-                    IDR - Indonesian Rupiah
-                  </option>
-                  <option value="USD - US Dollar">USD - US Dollar</option>
-                  <option value="SGD - Singapore Dollar">
-                    SGD - Singapore Dollar
-                  </option>
+                  <option value="IDR">IDR - Indonesian Rupiah</option>
+                  <option value="USD">USD - US Dollar</option>
+                  <option value="SGD">SGD - Singapore Dollar</option>
                 </select>
               ) : (
                 <p className="text-slate-700 font-medium">
@@ -281,15 +450,12 @@ export default function SettingsClient() {
                       }
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors bg-white cursor-pointer appearance-none"
                     >
-                      <option value="Asia/Jakarta (WIB)">
-                        Asia/Jakarta (WIB)
-                      </option>
-                      <option value="Asia/Makassar (WITA)">
+                      <option value="UTC">UTC (Default)</option>
+                      <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
+                      <option value="Asia/Makassar">
                         Asia/Makassar (WITA)
                       </option>
-                      <option value="Asia/Jayapura (WIT)">
-                        Asia/Jayapura (WIT)
-                      </option>
+                      <option value="Asia/Jayapura">Asia/Jayapura (WIT)</option>
                     </select>
                   </div>
                   <p className="text-xs text-slate-500 mt-2 font-medium">
@@ -336,14 +502,51 @@ export default function SettingsClient() {
               </div>
             ) : (
               <p className="text-slate-400 italic font-medium">
-                {formData.domain === "menu.kopikenangan.com"
-                  ? "Not set yet"
-                  : formData.domain}
+                {formData.domain || "Not set yet"}
               </p>
             )}
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                Settings Saved!
+              </h3>
+              <p className="text-sm text-slate-500 mb-6">
+                Your store profile and preferences have been updated
+                successfully.
+              </p>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,9 @@
-import SettingsClient from "./SettingsClient"
+import { cookies } from "next/headers";
+import SettingsClient from "./SettingsClient";
 
-export default function SettingsPage() {
-  return <SettingsClient />
+export default async function SettingsPage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("access_token")?.value || "";
+
+  return <SettingsClient token={token} />;
 }

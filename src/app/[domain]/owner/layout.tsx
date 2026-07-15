@@ -3,7 +3,7 @@ import { Star, Bell, Grip, Menu } from "lucide-react";
 import TenantSidebar from "@/components/tenant-sidebar";
 import UserProfileDropdown from "@/components/user-profile-dropdown";
 
-import { ProfileProvider } from "@/providers/ProfileProvider";
+import { ProfileProvider, type ProfileData } from "@/providers/ProfileProvider";
 import { cookies } from "next/headers";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -18,10 +18,11 @@ export default async function OwnerLayout({
   const cookieStore = await cookies();
   const token = cookieStore.get("access_token")?.value;
 
-  let profileData = {
+  let profileData: ProfileData = {
     restaurantName: "",
     branchAddress: "",
     currency: "IDR",
+    logoUrl: "",
   };
 
   if (token) {
@@ -37,6 +38,7 @@ export default async function OwnerLayout({
             restaurantName: json.data.restaurant_name || "",
             branchAddress: json.data.branch_address || "",
             currency: json.data.currency || "IDR",
+            logoUrl: json.data.logo_url || "",
           };
         }
       }

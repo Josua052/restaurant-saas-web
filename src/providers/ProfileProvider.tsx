@@ -6,6 +6,7 @@ export interface ProfileData {
   restaurantName: string;
   branchAddress: string;
   currency: string;
+  logoUrl?: string;
 }
 
 const ProfileContext = createContext<ProfileData | undefined>(undefined);
