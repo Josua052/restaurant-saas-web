@@ -1,16 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { Pencil, Save, Lock, Eye, EyeOff, Flame } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Pencil, Save, Lock, Eye, EyeOff, Flame, Loader2, CheckCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
-export default function ProfileClient() {
+export default function ProfileClient({ token }: { token?: string }) {
+  const router = useRouter();
+
   // Toggle state for Personal Information
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Personal Info Form State
   const [personalData, setPersonalData] = useState({
-    fullName: "Budi Santoso",
-    email: "budi@kopikenangan.com",
+    fullName: "",
+    email: "",
+    role: "",
   });
 
   // Draft for unsaved changes
@@ -34,6 +42,34 @@ export default function ProfileClient() {
     passwordData.newPassword.length > 0 &&
     passwordData.confirmPassword.length > 0;
 
+  useEffect(() => {
+    fetchProfile();
+  }, [token]);
+
+  const fetchProfile = async () => {
+    if (!token) return;
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_URL}/management/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        const profile = {
+          fullName: data.name || "",
+          email: data.email || "",
+          role: data.role || "Owner",
+        };
+        setPersonalData(profile);
+        setDraftPersonalData(profile);
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleEditPersonal = () => {
     setDraftPersonalData(personalData);
     setIsEditing(true);
@@ -43,25 +79,89 @@ export default function ProfileClient() {
     setIsEditing(false);
   };
 
-  const handleSavePersonal = () => {
-    setPersonalData(draftPersonalData);
-    setIsEditing(false);
+  const handleSavePersonal = async () => {
+    if (!token) return;
+    setIsSaving(true);
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_URL}/management/auth/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: draftPersonalData.fullName,
+          email: draftPersonalData.email,
+        }),
+      });
+
+      if (res.ok) {
+        setPersonalData(draftPersonalData);
+        setIsEditing(false);
+        setShowSuccessModal(true);
+        setTimeout(() => setShowSuccessModal(false), 2000);
+        router.refresh();
+      } else {
+        const errData = await res.json();
+        alert(`Error: ${errData.message || "Failed to update profile"}`);
+      }
+    } catch (error) {
+      console.error("Failed to update profile", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert("New password and confirmation do not match!");
       return;
     }
+    
+    if (!token) return;
+    setIsSavingPassword(true);
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_URL}/management/auth/password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          old_password: passwordData.currentPassword,
+          new_password: passwordData.newPassword,
+        }),
+      });
 
-    alert("Password successfully updated!");
-    // Reset fields after save
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+      if (res.ok) {
+        setShowSuccessModal(true);
+        setTimeout(() => setShowSuccessModal(false), 2000);
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+      } else {
+        const errData = await res.json();
+        alert(`Error: ${errData.message || "Failed to change password"}`);
+      }
+    } catch (error) {
+      console.error("Failed to change password", error);
+    } finally {
+      setIsSavingPassword(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        <p className="text-slate-500 font-medium">Loading profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div suppressHydrationWarning className="w-full space-y-8">
@@ -95,10 +195,15 @@ export default function ProfileClient() {
                   </button>
                   <button
                     onClick={handleSavePersonal}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors shadow-sm"
+                    disabled={isSaving}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors shadow-sm disabled:opacity-70"
                   >
-                    <Save className="w-4 h-4" />
-                    Save
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    {isSaving ? "Saving..." : "Save"}
                   </button>
                 </>
               ) : (
@@ -281,20 +386,29 @@ export default function ProfileClient() {
             {/* Change Password Button */}
             <div className="pt-4 flex justify-end">
               <button
-                disabled={!isPasswordFormFilled}
+                disabled={!isPasswordFormFilled || isSavingPassword}
                 onClick={handleChangePassword}
-                className={`px-5 py-2.5 rounded-lg font-bold text-sm transition-colors ${
+                className={`px-5 py-2.5 rounded-lg font-bold text-sm transition-colors flex items-center gap-2 ${
                   isPasswordFormFilled
                     ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
                     : "bg-slate-200 text-slate-400 cursor-not-allowed"
                 }`}
               >
-                Change Password
+                {isSavingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isSavingPassword ? "Changing..." : "Change Password"}
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Success Notification Modal */}
+      {showSuccessModal && (
+        <div className="fixed bottom-8 right-8 bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 z-50">
+          <CheckCircle className="w-5 h-5" />
+          <p className="font-bold">Profile updated successfully!</p>
+        </div>
+      )}
     </div>
   );
 }

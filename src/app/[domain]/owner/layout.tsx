@@ -13,8 +13,10 @@ export default async function OwnerLayout({
   params,
 }: {
   children: ReactNode;
-  params: { domain: string };
+  params: Promise<{ domain: string }>;
 }) {
+  const resolvedParams = await params;
+  const domain = resolvedParams.domain;
   const cookieStore = await cookies();
   const token = cookieStore.get("access_token")?.value;
 
@@ -80,7 +82,7 @@ export default async function OwnerLayout({
               <button className="text-slate-500 hover:text-slate-700 transition-colors">
                 <Grip className="w-5 h-5" />
               </button>
-              <UserProfileDropdown profileHref="/owner/profile" />
+              <UserProfileDropdown profileHref={`/${domain}/owner/profile`} />
             </div>
           </header>
 
