@@ -23,7 +23,6 @@ export default async function TenantStaffDashboard({
   let reservationStats: any = null;
   let tableStats: any = null;
   let fetchError = null;
-
   if (token) {
     try {
       const headers = { Authorization: `Bearer ${token}` };

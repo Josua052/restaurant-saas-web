@@ -1,59 +1,102 @@
-"use client";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, AlertCircle, Image as ImageIcon } from "lucide-react";
 
-import { useState } from "react";
+export default async function StaffMenuPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ domain: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { domain } = await params;
+  const resolvedSearchParams = await searchParams;
+  
+  const page = typeof resolvedSearchParams.page === "string" ? parseInt(resolvedSearchParams.page, 10) : 1;
+  const categoryId = typeof resolvedSearchParams.category_id === "string" ? resolvedSearchParams.category_id : "";
 
-// Mockup Data
-const MOCK_CATEGORIES = ["All", "Coffee", "Non-Coffee", "Pastries", "Snacks"];
+  const cookieStore = await cookies();
+  const token = cookieStore.get("access_token")?.value;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-const MOCK_MENU_ITEMS = [
-  {
-    id: "1",
-    category: "Coffee",
-    name: "Kopi Kenangan Mantan",
-    price: 2.5,
-    description: "Our signature blend of premium espresso, palm sugar, and fresh milk.",
-    image: "https://images.unsplash.com/photo-1579992357154-faf4bde95b3d?q=80&w=600&auto=format&fit=crop",
-    isAvailable: true,
-  },
-  {
-    id: "2",
-    category: "Pastries",
-    name: "Croissant Chocolate",
-    price: 3.0,
-    description: "Buttery, flaky pastry filled with rich dark chocolate. Baked fresh daily.",
-    image: "https://images.unsplash.com/photo-1549903072-7e6e0d234247?q=80&w=600&auto=format&fit=crop",
-    isAvailable: true,
-  },
-  {
-    id: "3",
-    category: "Coffee",
-    name: "Avocado Coffee",
-    price: 3.5,
-    description: "Creamy avocado blended with premium espresso and a touch of sweetness.",
-    image: "https://images.unsplash.com/photo-1553530666-ba11a7da3888?q=80&w=600&auto=format&fit=crop",
-    isAvailable: false,
-  },
-  {
-    id: "4",
-    category: "Non-Coffee",
-    name: "Matcha Espresso",
-    price: 3.2,
-    description: "A unique fusion of earthy Japanese matcha and rich signature espresso.",
-    image: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?q=80&w=600&auto=format&fit=crop",
-    isAvailable: true,
-  },
-];
+  if (!token) {
+    redirect(`/${domain}/login`);
+  }
 
-export default function StaffMenuPage() {
-  const [activeCategory, setActiveCategory] = useState("All");
+  const headers = { Authorization: `Bearer ${token}` };
 
-  // Filter items based on selected category
-  const filteredItems = MOCK_MENU_ITEMS.filter(
-    (item) => activeCategory === "All" || item.category === activeCategory
-  );
+  let categories: any[] = [];
+  let menuItems: any[] = [];
+  let meta: any = null;
+  let fetchError = null;
+  let currency = "IDR";
+
+  try {
+    // Construct URLs
+    const categoriesUrl = `${API_URL}/management/menus/categories`;
+    let menusUrl = `${API_URL}/management/menus?page=${page}&limit=12`;
+    if (categoryId) {
+      menusUrl += `&category_id=${categoryId}`;
+    }
+    const profileUrl = `${API_URL}/management/auth/me`;
+
+    // Fetch endpoints concurrently
+    const [resCategories, resMenus, resProfile] = await Promise.all([
+      fetch(categoriesUrl, { headers, cache: "no-store" }),
+      fetch(menusUrl, { headers, cache: "no-store" }),
+      fetch(profileUrl, { headers, cache: "no-store" }),
+    ]);
+
+    if (resCategories.status === 401 || resMenus.status === 401) {
+      redirect(`/${domain}/login`);
+    }
+
+    if (!resCategories.ok || !resMenus.ok) {
+      fetchError = "Failed to load menu data from the server.";
+    } else {
+      const jsonCat = await resCategories.json();
+      const jsonMen = await resMenus.json();
+      categories = jsonCat.data || [];
+      menuItems = jsonMen.data || [];
+      meta = jsonMen.meta || { current_page: 1, total_pages: 1 };
+    }
+
+    if (resProfile.ok) {
+      const jsonProf = await resProfile.json();
+      currency = jsonProf.data?.currency || "IDR";
+    }
+  } catch (error: any) {
+    console.error("Staff Menu Fetch Error:", error);
+    fetchError = "Network error. Make sure the backend is running.";
+  }
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0, // Typical for IDR to not show decimals
+    }).format(value);
+  };
+
+  const currentPage = meta?.current_page || 1;
+  const totalPages = meta?.total_pages || 1;
+
+  // Helper to generate URLs for links
+  const createPageUrl = (newPage: number) => {
+    let url = `/${domain}/staff/menu?page=${newPage}`;
+    if (categoryId) url += `&category_id=${categoryId}`;
+    return url;
+  };
+
+  const createCategoryUrl = (catId: string) => {
+    if (!catId) return `/${domain}/staff/menu?page=1`;
+    return `/${domain}/staff/menu?page=1&category_id=${catId}`;
+  };
 
   return (
-    <div className="w-full space-y-6 animate-in fade-in duration-500">
+    <div className="w-full space-y-6 animate-in fade-in duration-500 pb-12">
       {/* Header Area */}
       <div>
         <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">
@@ -64,54 +107,81 @@ export default function StaffMenuPage() {
         </p>
       </div>
 
-      {/* Categories Filter */}
+      {fetchError && (
+        <div className="p-4 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 border border-red-200">
+          <AlertCircle className="w-5 h-5" />
+          <p className="text-sm font-medium">{fetchError}</p>
+        </div>
+      )}
+
+      {/* Categories Filter (Pills) */}
       <div className="flex flex-wrap gap-2 pt-2">
-        {MOCK_CATEGORIES.map((category) => (
-          <button
-            key={category}
-            onClick={() => setActiveCategory(category)}
+        {/* All Category Pill */}
+        <Link
+          href={createCategoryUrl("")}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+            !categoryId
+              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+          }`}
+        >
+          All
+        </Link>
+        
+        {/* Dynamic Categories */}
+        {categories.map((cat) => (
+          <Link
+            key={cat.ID}
+            href={createCategoryUrl(cat.ID)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-              activeCategory === category
+              categoryId === cat.ID
                 ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
                 : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
-            {category}
-          </button>
+            {cat.Name}
+          </Link>
         ))}
       </div>
 
       {/* Menu Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
-        {filteredItems.map((item) => (
+        {menuItems.map((item) => (
           <div
-            key={item.id}
+            key={item.ID}
             className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all"
           >
             {/* Image Area */}
             <div className="h-48 bg-slate-100 relative overflow-hidden flex items-center justify-center">
-              <img
-                src={item.image}
-                alt={item.name}
-                className={`w-full h-full object-cover transition-transform duration-500 ${
-                  item.isAvailable ? "group-hover:scale-105" : "opacity-70 grayscale-[30%]"
-                }`}
-              />
+              {item.ImageURL ? (
+                <img
+                  src={item.ImageURL}
+                  alt={item.Name}
+                  className={`w-full h-full object-cover transition-transform duration-500 ${
+                    item.IsAvailable !== false ? "group-hover:scale-105" : "opacity-70 grayscale-[30%]"
+                  }`}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50">
+                  <ImageIcon className="w-10 h-10 mb-2 opacity-50" />
+                  <span className="text-xs font-medium">No Image</span>
+                </div>
+              )}
               
               {/* Status Badge */}
               <div
                 className={`absolute top-3 right-3 px-2.5 py-1 rounded flex items-center gap-1.5 backdrop-blur-md shadow-sm text-[10px] font-bold tracking-wider uppercase ${
-                  item.isAvailable
+                  item.IsAvailable !== false
                     ? "bg-white/90 text-emerald-700"
                     : "bg-white/90 text-rose-700"
                 }`}
               >
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
-                    item.isAvailable ? "bg-emerald-500" : "bg-rose-500"
+                    item.IsAvailable !== false ? "bg-emerald-500" : "bg-rose-500"
                   }`}
                 ></span>
-                {item.isAvailable ? "Available" : "Sold Out"}
+                {item.IsAvailable !== false ? "Available" : "Sold Out"}
               </div>
             </div>
 
@@ -119,25 +189,75 @@ export default function StaffMenuPage() {
             <div className="p-5 flex-1 flex flex-col">
               <div className="flex justify-between items-start gap-2 mb-2">
                 <h3 className="font-bold text-slate-900 leading-tight">
-                  {item.name}
+                  {item.Name}
                 </h3>
                 <span className="font-bold text-slate-900 shrink-0">
-                  ${item.price.toFixed(2)}
+                  {formatCurrency(item.Price || 0)}
                 </span>
               </div>
-              <p className="text-sm text-slate-500 line-clamp-2">
-                {item.description}
-              </p>
+              {item.Description && (
+                <p className="text-sm text-slate-500 line-clamp-2">
+                  {item.Description}
+                </p>
+              )}
             </div>
           </div>
         ))}
         
-        {filteredItems.length === 0 && (
-          <div className="col-span-full py-12 text-center text-slate-500">
-            No items found in this category.
+        {menuItems.length === 0 && !fetchError && (
+          <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-500 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
+             <AlertCircle className="w-8 h-8 mb-3 text-slate-400" />
+             <p className="font-medium text-slate-600">No menu items found.</p>
+             <p className="text-sm mt-1">Try selecting a different category.</p>
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-slate-200 pt-6 mt-8">
+          <div className="text-sm text-slate-500 font-medium">
+            Page {currentPage} of {totalPages}
+          </div>
+          <div className="flex items-center gap-2">
+            {currentPage > 1 ? (
+              <Link
+                href={createPageUrl(currentPage - 1)}
+                className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium text-sm transition-colors shadow-sm"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </Link>
+            ) : (
+              <button
+                disabled
+                className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-100 bg-slate-50 text-slate-400 font-medium text-sm cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </button>
+            )}
+
+            {currentPage < totalPages ? (
+              <Link
+                href={createPageUrl(currentPage + 1)}
+                className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium text-sm transition-colors shadow-sm"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <button
+                disabled
+                className="flex items-center gap-1 px-4 py-2 rounded-lg border border-slate-100 bg-slate-50 text-slate-400 font-medium text-sm cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
