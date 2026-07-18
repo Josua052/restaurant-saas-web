@@ -9,7 +9,14 @@ import {
   X,
   UserCog,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Employee {
   id: string;
@@ -47,6 +54,10 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const [employeeForRoleChange, setEmployeeForRoleChange] =
     useState<Employee | null>(null);
+
+  // Delete State
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch Employees
   const fetchEmployees = async () => {
@@ -151,22 +162,24 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
     }
   };
 
-  // Handle Remove
-  const handleRemove = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this employee?")) return;
+  // Handle Remove via Modal
+  const confirmDelete = async () => {
+    if (!employeeToDelete) return;
+    setIsDeleting(true);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/management/employees/${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/management/employees/${employeeToDelete.id}`,
         {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        },
+        }
       );
 
       if (res.ok) {
         fetchEmployees(); // Refresh
+        setEmployeeToDelete(null);
       } else {
         const data = await res.json();
         alert(data.message || "Failed to remove employee");
@@ -174,6 +187,8 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
     } catch (error) {
       console.error("Remove error:", error);
       alert("Failed to remove employee");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -198,37 +213,38 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
         </button>
       </div>
 
-      {/* Main Table Container */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-        {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row gap-4 bg-slate-50/50">
-          <div className="relative w-full sm:max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-slate-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search employees..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors bg-white"
-            />
+      {/* Search and Filters */}
+      <div className="shrink-0 flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full sm:max-w-md">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-slate-400" />
           </div>
-          <div className="relative sm:ml-auto w-full sm:w-auto">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Filter className="h-4 w-4 text-slate-400" />
-            </div>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full sm:w-40 pl-9 pr-8 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors bg-white appearance-none cursor-pointer text-slate-600 font-medium"
-            >
-              <option value="All">All Roles</option>
-              <option value="Manager">Manager</option>
-              <option value="Staff">Staff</option>
-            </select>
-          </div>
+          <input
+            type="text"
+            placeholder="Search employees..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 h-11 lg:h-10 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors bg-white shadow-sm"
+          />
         </div>
+        <div className="relative w-full sm:w-auto">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Filter className="h-4 w-4 text-slate-400" />
+          </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="w-full sm:w-48 pl-9 pr-8 h-11 lg:h-10 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors bg-white appearance-none cursor-pointer text-slate-700 font-medium shadow-sm"
+          >
+            <option value="All">Filter: All Roles</option>
+            <option value="Manager">Manager</option>
+            <option value="Staff">Staff</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Main Table Container */}
+      <div className="flex-1 bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col min-h-[400px]">
 
         {/* Table */}
         <div className="overflow-x-auto relative">
@@ -297,54 +313,30 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
                     <td className="px-6 py-4 text-slate-500 font-medium">
                       {new Date(emp.dateAdded).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 relative">
+                    <td className="px-6 py-4">
                       <div className="flex justify-center">
-                        <button
-                          onClick={() =>
-                            setActiveDropdownId(
-                              activeDropdownId === emp.id ? null : emp.id,
-                            )
-                          }
-                          className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-md hover:bg-slate-100"
-                        >
-                          <MoreVertical className="w-5 h-5" />
-                        </button>
-                      </div>
-
-                      {/* Contextual Dropdown Menu */}
-                      {activeDropdownId === emp.id && (
-                        <>
-                          {/* Invisible Overlay to close dropdown when clicking outside */}
-                          <div
-                            className="fixed inset-0 z-10"
-                            onClick={() => setActiveDropdownId(null)}
-                          ></div>
-
-                          {/* Dropdown Box */}
-                          <div className="absolute right-[50%] translate-x-[50%] sm:translate-x-0 sm:right-10 top-12 w-48 bg-white border border-slate-200 shadow-xl rounded-xl py-1 z-20 animate-in fade-in zoom-in-95 duration-100">
-                            <button
-                              onClick={() => {
-                                setActiveDropdownId(null);
-                                setEmployeeForRoleChange(emp);
-                              }}
-                              className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-medium"
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-md hover:bg-slate-100">
+                              <MoreVertical className="w-5 h-5" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-200 shadow-xl rounded-xl">
+                            <DropdownMenuItem 
+                              className="cursor-pointer text-slate-700 hover:bg-slate-50 gap-2 font-medium py-2.5"
+                              onClick={() => setEmployeeForRoleChange(emp)}
                             >
                               <UserCog className="w-4 h-4 text-indigo-500" />
-                              Change Role
-                            </button>
-                            <button
-                              onClick={() => {
-                                setActiveDropdownId(null);
-                                handleRemove(emp.id);
-                              }}
-                              className="w-full text-left px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-medium"
+                              <span>Change Role</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="cursor-pointer text-rose-600 hover:bg-rose-50 hover:text-rose-700 gap-2 font-medium py-2.5 focus:text-rose-700 focus:bg-rose-50"
+                              onClick={() => setEmployeeToDelete(emp)}
                             >
                               <Trash2 className="w-4 h-4 text-rose-500" />
-                              Remove Employee
-                            </button>
-                          </div>
-                        </>
-                      )}
+                              <span>Remove Employee</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -516,6 +508,41 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
                 className="px-4 py-2 text-slate-600 font-medium hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors text-sm"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirm Delete */}
+      {employeeToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Remove Employee</h3>
+                <p className="text-sm text-slate-500 mt-2">
+                  Are you sure you want to remove <span className="font-semibold text-slate-700">{employeeToDelete.name}</span>? This action will revoke their access to the dashboard.
+                </p>
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-slate-50 flex items-center justify-end gap-3 border-t border-slate-100">
+              <button
+                onClick={() => setEmployeeToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isDeleting ? "Removing..." : "Remove"}
               </button>
             </div>
           </div>

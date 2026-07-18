@@ -6,20 +6,24 @@ import {
   LayoutDashboard,
   CalendarCheck,
   Utensils,
-  Layers,
-  Armchair,
   Users,
   Settings,
   LogOut,
 } from "lucide-react";
 import { useProfile } from "@/providers/ProfileProvider";
 
-export default function TenantSidebar() {
+interface TenantSidebarProps {
+  role?: "owner" | "staff";
+}
+
+export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
   const pathname = usePathname();
   const params = useParams();
   const router = useRouter();
   const domain = (params?.domain as string) || "";
   const { restaurantName, branchAddress, logoUrl } = useProfile();
+  
+  const basePath = `/${domain}/${role}`;
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -45,26 +49,31 @@ export default function TenantSidebar() {
 
   // Helper to check if a route is active
   const isActive = (path: string) => {
-    // If the path is exactly "/{domain}/owner", check for exact match
-    if (path === `/${domain}/owner`) {
-      return (
-        pathname === `/${domain}/owner` || pathname === `/${domain}/owner/`
-      );
+    // If the path is exactly "/{domain}/owner" or "/{domain}/staff", check for exact match
+    if (path === basePath) {
+      return pathname === basePath || pathname === `${basePath}/`;
     }
     // Otherwise check if pathname starts with the path
     return pathname.startsWith(path);
   };
 
   const navItems = [
-    { name: "Dashboard", href: `/${domain}/owner`, icon: LayoutDashboard },
+    { name: "Dashboard", href: basePath, icon: LayoutDashboard },
     {
       name: "Reservations",
-      href: `/${domain}/owner/reservations`,
+      href: `${basePath}/reservations`,
       icon: CalendarCheck,
     },
-    { name: "Menu", href: `/${domain}/owner/menu`, icon: Utensils },
-    { name: "Employees", href: `/${domain}/owner/employees`, icon: Users },
+    { name: "Menu", href: `${basePath}/menu`, icon: Utensils },
   ];
+
+  if (role === "owner") {
+    navItems.push({
+      name: "Employees",
+      href: `${basePath}/employees`,
+      icon: Users,
+    });
+  }
 
   // Extract first letter for logo
   const logoLetter = restaurantName
@@ -125,15 +134,15 @@ export default function TenantSidebar() {
       {/* Bottom Nav */}
       <div className="p-4 border-t border-slate-100 flex flex-col gap-1.5 shrink-0">
         <Link
-          href={`/${domain}/owner/settings`}
+          href={`${basePath}/settings`}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-            isActive(`/${domain}/owner/settings`)
+            isActive(`${basePath}/settings`)
               ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
               : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
           <Settings
-            className={`w-5 h-5 ${isActive(`/${domain}/owner/settings`) ? "text-white" : "text-slate-500"}`}
+            className={`w-5 h-5 ${isActive(`${basePath}/settings`) ? "text-white" : "text-slate-500"}`}
           />
           Settings
         </Link>
@@ -148,3 +157,4 @@ export default function TenantSidebar() {
     </aside>
   );
 }
+
