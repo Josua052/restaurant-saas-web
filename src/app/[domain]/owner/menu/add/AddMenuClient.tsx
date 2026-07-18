@@ -398,9 +398,9 @@ export default function AddMenuClient({
 
             <div className="p-4 border border-slate-200 rounded-lg flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-slate-900">Item Status</p>
+                <p className="text-sm font-bold text-slate-900">Available</p>
                 <p className="text-xs text-slate-500">
-                  {isAvailable ? "Available" : "Unavailable"}
+                  {isAvailable ? "Yes" : "No"}
                 </p>
               </div>
               <button

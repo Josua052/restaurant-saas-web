@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useProfile } from "@/providers/ProfileProvider";
 import { useRouter, useParams } from "next/navigation";
-import { ChevronRight, UtensilsCrossed, Loader2 } from "lucide-react";
+import { ChevronRight, UtensilsCrossed, Loader2, X } from "lucide-react";
 import Image from "next/image";
 
 interface EditMenuClientProps {
@@ -38,6 +38,60 @@ export default function EditMenuClient({ token }: EditMenuClientProps) {
     isFeatured: true,
     imageUrl: "",
   });
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size must be less than 5MB");
+        return;
+      }
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const clearFile = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadPhotoToMinIO = async (): Promise<string | null> => {
+    if (!selectedFile) return null;
+    const extMatch = selectedFile.name.match(/\.[0-9a-z]+$/i);
+    const extension = extMatch ? extMatch[0] : ".jpg";
+
+    const presignRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/management/media/upload-url`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ type: "menu", extension }),
+    });
+
+    const presignData = await presignRes.json();
+    if (!presignRes.ok) throw new Error(presignData.message || "Failed to get upload URL");
+
+    const { presigned_url, temp_path } = presignData.data;
+
+    const uploadRes = await fetch(presigned_url, {
+      method: "PUT",
+      body: selectedFile,
+      headers: { "Content-Type": selectedFile.type },
+    });
+
+    if (!uploadRes.ok) throw new Error("Failed to upload image to storage");
+    return temp_path;
+  };
 
   useEffect(() => {
     fetchData();
@@ -104,6 +158,12 @@ export default function EditMenuClient({ token }: EditMenuClientProps) {
   const confirmSave = async () => {
     setIsSaving(true);
     try {
+      let tempImagePath = "";
+      if (selectedFile) {
+        const uploadedPath = await uploadPhotoToMinIO();
+        if (uploadedPath) tempImagePath = uploadedPath;
+      }
+
       const payload = {
         name: formData.name,
         description: formData.description,
@@ -111,6 +171,7 @@ export default function EditMenuClient({ token }: EditMenuClientProps) {
         category_id: formData.category_id || null,
         is_available: formData.isAvailable,
         is_featured: formData.isFeatured,
+        temp_image_path: tempImagePath,
       };
 
       const res = await fetch(
@@ -202,25 +263,57 @@ export default function EditMenuClient({ token }: EditMenuClientProps) {
             <label className="block text-sm font-bold text-slate-700 mb-2">
               Item Photo
             </label>
-            <div className="aspect-square relative rounded-xl border border-dashed border-slate-300 overflow-hidden bg-slate-50 group cursor-pointer hover:border-indigo-400 transition-colors">
-              {formData.imageUrl ? (
-                <Image
-                  src={formData.imageUrl}
-                  alt="Menu"
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
+            <input
+              type="file"
+              accept="image/png, image/jpeg, image/jpg"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              disabled={isSaving}
+            />
+            <div 
+              onClick={() => !isSaving && fileInputRef.current?.click()}
+              className="aspect-square relative rounded-xl border border-dashed border-slate-300 overflow-hidden bg-slate-50 group cursor-pointer hover:border-indigo-400 transition-colors"
+            >
+              {previewUrl ? (
+                <>
+                  <Image src={previewUrl} alt="Preview" fill className="object-cover" unoptimized />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={clearFile}
+                      className="bg-white text-rose-600 px-4 py-2 rounded-lg font-medium text-sm shadow flex items-center gap-2 hover:bg-rose-50"
+                    >
+                      <X className="w-4 h-4" /> Remove Photo
+                    </button>
+                  </div>
+                </>
+              ) : formData.imageUrl ? (
+                <>
+                  <Image
+                    src={formData.imageUrl}
+                    alt="Menu"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-sm font-medium">
+                      Change Photo
+                    </span>
+                  </div>
+                </>
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                  <UtensilsCrossed className="w-8 h-8 opacity-50" />
-                </div>
+                <>
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                    <UtensilsCrossed className="w-8 h-8 opacity-50" />
+                  </div>
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-sm font-medium">
+                      Add Photo
+                    </span>
+                  </div>
+                </>
               )}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-white text-sm font-medium">
-                  Change Photo
-                </span>
-              </div>
             </div>
             <p className="text-xs text-slate-500 mt-3 text-center leading-relaxed">
               Photo will only be updated if you upload a new one. Leave
