@@ -8,12 +8,19 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const scope = body.scope || "tenant";
     
+    const portal = body.portal; // e.g. "admin", "owner", "staff"
+    
     let refreshToken = undefined;
     
-    if (scope === "admin") {
+    if (scope === "admin" || portal === "admin") {
       refreshToken = cookieStore.get("admin_refresh_token")?.value;
+    } else if (portal === "staff") {
+      refreshToken = cookieStore.get("staff_refresh_token")?.value;
+    } else if (portal === "owner") {
+      refreshToken = cookieStore.get("owner_refresh_token")?.value;
     } else {
-      refreshToken = cookieStore.get("refresh_token")?.value;
+      // Fallback if portal not explicitly provided
+      refreshToken = cookieStore.get("owner_refresh_token")?.value || cookieStore.get("staff_refresh_token")?.value;
     }
 
     if (!refreshToken) {
@@ -43,12 +50,16 @@ export async function POST(request: Request) {
 
     if (!backendResponse.ok || !data.success) {
       // If refresh fails, we probably should clear cookies so the user has to login again
-      if (scope === "admin") {
+      if (scope === "admin" || portal === "admin") {
         cookieStore.delete("admin_access_token");
         cookieStore.delete("admin_refresh_token");
       } else {
-        cookieStore.delete("access_token");
-        cookieStore.delete("refresh_token");
+        cookieStore.delete("access_token"); // legacy
+        cookieStore.delete("refresh_token"); // legacy
+        cookieStore.delete("owner_access_token");
+        cookieStore.delete("owner_refresh_token");
+        cookieStore.delete("staff_access_token");
+        cookieStore.delete("staff_refresh_token");
       }
 
       // Check if the error indicates a suspended account
@@ -76,8 +87,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const accessCookieName = scope === "admin" ? "admin_access_token" : "access_token";
-    const refreshCookieName = scope === "admin" ? "admin_refresh_token" : "refresh_token";
+    let accessCookieName = "owner_access_token";
+    let refreshCookieName = "owner_refresh_token";
+    if (scope === "admin" || portal === "admin") {
+      accessCookieName = "admin_access_token";
+      refreshCookieName = "admin_refresh_token";
+    } else if (portal === "staff") {
+      accessCookieName = "staff_access_token";
+      refreshCookieName = "staff_refresh_token";
+    }
 
     cookieStore.set({
       name: accessCookieName,

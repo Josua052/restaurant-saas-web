@@ -21,8 +21,21 @@ export default async function middleware(req: NextRequest) {
   
   // 1. Token Refresh Logic
   const isAdmin = url.pathname.startsWith('/dashboard');
-  const accessCookieName = isAdmin ? "admin_access_token" : "access_token";
-  const refreshCookieName = isAdmin ? "admin_refresh_token" : "refresh_token";
+  const isStaff = url.pathname.includes('/staff');
+  
+  let accessCookieName = "access_token";
+  let refreshCookieName = "refresh_token";
+  
+  if (isAdmin) {
+    accessCookieName = "admin_access_token";
+    refreshCookieName = "admin_refresh_token";
+  } else if (isStaff) {
+    accessCookieName = "staff_access_token";
+    refreshCookieName = "staff_refresh_token";
+  } else {
+    accessCookieName = "owner_access_token";
+    refreshCookieName = "owner_refresh_token";
+  }
 
   const accessToken = req.cookies.get(accessCookieName)?.value;
   const refreshToken = req.cookies.get(refreshCookieName)?.value;
@@ -30,7 +43,7 @@ export default async function middleware(req: NextRequest) {
   // If access token is expired/missing but refresh token exists, attempt to refresh silently
   if (!accessToken && refreshToken) {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
         method: "POST",
         headers: {

@@ -45,13 +45,14 @@ export default async function TenantOwnerDashboard({
   const { domain } = await params;
 
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("owner_access_token")?.value;
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   let reservationStats: ReservationStats | null = null;
   let tableStats: TableStats | null = null;
   let menuStats: MenuStats | null = null;
   let fetchError = null;
+  let redirectUrl = "";
 
   if (token) {
     try {
@@ -75,10 +76,11 @@ export default async function TenantOwnerDashboard({
       ]);
 
       if (resReservations.status === 401 || resTables.status === 401 || resMenus.status === 401) {
-        redirect(`/${domain}/login`);
-      }
-
-      if (!resReservations.ok || !resTables.ok || !resMenus.ok) {
+        redirectUrl = `/${domain}/login`;
+      } else if (resMenus.status === 403) {
+        // If 403 Forbidden, token is valid but wrong role (e.g. Staff token on Owner page)
+        redirectUrl = `/${domain}/staff`;
+      } else if (!resReservations.ok || !resTables.ok || !resMenus.ok) {
         // Detailed error logging for debugging
         const errDetails = await Promise.all([
           resReservations.ok ? null : resReservations.text(),
@@ -112,7 +114,12 @@ export default async function TenantOwnerDashboard({
         "Network error. Make sure the backend is running and endpoints exist.";
     }
   } else {
-    redirect(`/${domain}/login`);
+    redirectUrl = `/${domain}/login`;
+  }
+
+  // Perform redirect outside of try-catch block
+  if (redirectUrl) {
+    redirect(redirectUrl);
   }
   // Fallbacks if data is null (e.g. backend not ready)
   const totalRes = reservationStats?.total_reservations || 0;

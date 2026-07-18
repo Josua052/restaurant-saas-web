@@ -74,9 +74,15 @@ export async function POST(request: Request) {
     // Next.js 15+ syntax using await cookies()
     const cookieStore = await cookies();
 
-    // Determine cookie name based on scope
-    const cookieName =
-      scope === "admin" ? "admin_access_token" : "access_token";
+    // Determine cookie name based on scope/role
+    let cookieName = "access_token";
+    if (scope === "admin") {
+      cookieName = "admin_access_token";
+    } else if (userRole === "staff" || userRole === "cashier") {
+      cookieName = "staff_access_token";
+    } else {
+      cookieName = "owner_access_token";
+    }
 
     // Set Access Token
     cookieStore.set({
@@ -91,8 +97,15 @@ export async function POST(request: Request) {
 
     // Set Refresh Token (if provided)
     if (refreshToken) {
-      const refreshCookieName =
-        scope === "admin" ? "admin_refresh_token" : "refresh_token";
+      let refreshCookieName = "refresh_token";
+      if (scope === "admin") {
+        refreshCookieName = "admin_refresh_token";
+      } else if (userRole === "staff" || userRole === "cashier") {
+        refreshCookieName = "staff_refresh_token";
+      } else {
+        refreshCookieName = "owner_refresh_token";
+      }
+
       cookieStore.set({
         name: refreshCookieName,
         value: refreshToken,

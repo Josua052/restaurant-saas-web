@@ -5,6 +5,7 @@ import UserProfileDropdown from "@/components/user-profile-dropdown";
 
 import { ProfileProvider, type ProfileData } from "@/providers/ProfileProvider";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -18,7 +19,7 @@ export default async function OwnerLayout({
   const resolvedParams = await params;
   const domain = resolvedParams.domain;
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("owner_access_token")?.value;
 
   let profileData: ProfileData = {
     restaurantName: "",
@@ -26,6 +27,8 @@ export default async function OwnerLayout({
     currency: "IDR",
     logoUrl: "",
   };
+
+  let shouldRedirectToStaff = false;
 
   if (token) {
     try {
@@ -36,6 +39,12 @@ export default async function OwnerLayout({
       if (res.ok) {
         const json = await res.json();
         if (json.data) {
+          // Role-based protection: if user is not Owner/Manager, redirect them to the correct portal
+          const role = json.data.role;
+          if (role && (role === "Staff" || role === "Cashier")) {
+            shouldRedirectToStaff = true;
+          }
+
           profileData = {
             restaurantName: json.data.restaurant_name || "",
             branchAddress: json.data.branch_address || "",
@@ -47,6 +56,10 @@ export default async function OwnerLayout({
     } catch (e) {
       console.error("Failed to fetch owner profile in layout:", e);
     }
+  }
+
+  if (shouldRedirectToStaff) {
+    redirect(`/${domain}/staff`);
   }
 
   return (

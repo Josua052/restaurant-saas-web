@@ -5,7 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default async function MenuPage({ params }: { params: Promise<{ domain: string }> }) {
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value || "";
+  const token = cookieStore.get("owner_access_token")?.value || "";
   const { domain } = await params;
 
   let menus = [];

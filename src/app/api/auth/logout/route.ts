@@ -6,8 +6,10 @@ export async function POST(request: Request) {
     const cookieStore = await cookies();
     
     // Get tokens from cookies
-    const accessToken = cookieStore.get("access_token")?.value;
-    const refreshToken = cookieStore.get("refresh_token")?.value;
+    // For tenant logout, we might not know if it's owner or staff, so we check both
+    let accessToken = cookieStore.get("owner_access_token")?.value || cookieStore.get("staff_access_token")?.value;
+    let refreshToken = cookieStore.get("owner_refresh_token")?.value || cookieStore.get("staff_refresh_token")?.value;
+
     const adminAccessToken = cookieStore.get("admin_access_token")?.value;
     const adminRefreshToken = cookieStore.get("admin_refresh_token")?.value;
 
@@ -56,8 +58,13 @@ export async function POST(request: Request) {
       cookieStore.delete("admin_access_token");
       cookieStore.delete("admin_refresh_token");
     } else {
-      cookieStore.delete("access_token");
-      cookieStore.delete("refresh_token");
+      // Clear both owner and staff tokens to ensure a clean logout
+      cookieStore.delete("access_token"); // legacy
+      cookieStore.delete("refresh_token"); // legacy
+      cookieStore.delete("owner_access_token");
+      cookieStore.delete("owner_refresh_token");
+      cookieStore.delete("staff_access_token");
+      cookieStore.delete("staff_refresh_token");
     }
 
     return response;

@@ -17,12 +17,13 @@ export default async function TenantStaffDashboard({
   const { domain } = await params;
   
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("staff_access_token")?.value;
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   let reservationStats: any = null;
   let tableStats: any = null;
   let fetchError = null;
+  let redirectUrl = "";
   if (token) {
     try {
       const headers = { Authorization: `Bearer ${token}` };
@@ -40,10 +41,8 @@ export default async function TenantStaffDashboard({
       ]);
 
       if (resReservations.status === 401 || resTables.status === 401) {
-        redirect(`/${domain}/login`);
-      }
-
-      if (!resReservations.ok || !resTables.ok) {
+        redirectUrl = `/${domain}/login`;
+      } else if (!resReservations.ok || !resTables.ok) {
         console.error("Dashboard API errors");
         fetchError = "Failed to fetch one or more dashboard metrics.";
       } else {
@@ -62,7 +61,12 @@ export default async function TenantStaffDashboard({
         "Network error. Make sure the backend is running and endpoints exist.";
     }
   } else {
-    redirect(`/${domain}/login`);
+    redirectUrl = `/${domain}/login`;
+  }
+
+  // Perform redirect outside of try-catch block
+  if (redirectUrl) {
+    redirect(redirectUrl);
   }
 
   const activeRes = reservationStats?.total_reservations || 0;

@@ -5,7 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default async function ReservationsPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("owner_access_token")?.value;
 
   let ownerName = "";
   let reservations = [];

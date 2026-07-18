@@ -17,7 +17,7 @@ export default async function StaffMenuPage({
   const categoryId = typeof resolvedSearchParams.category_id === "string" ? resolvedSearchParams.category_id : "";
 
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("staff_access_token")?.value;
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   if (!token) {
