@@ -85,8 +85,14 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
         return;
       }
 
-      // Route the user to their specific tenant dashboard
-      router.push(`/${domain}/owner`);
+      // Route the user to their specific tenant dashboard based on role
+      const userRole = result.role?.toLowerCase() || "owner";
+      
+      if (userRole === "staff" || userRole === "cashier") {
+        router.push(`/${domain}/staff`);
+      } else {
+        router.push(`/${domain}/owner`);
+      }
     } catch (err) {
       console.error("Login failed:", err);
       setError("Network error occurred.");

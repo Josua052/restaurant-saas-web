@@ -42,12 +42,30 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+    
+    // Extract role by fetching the user profile from the backend
+    let userRole = "owner";
+    try {
+      const profileRes = await fetch(`${API_URL}/management/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+      });
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        userRole = profileData.data?.role?.toLowerCase() || "owner";
+      }
+    } catch (err) {
+      console.error("Failed to fetch profile during login:", err);
+    }
 
     // Prepare response to send back to client
     const response = NextResponse.json(
       {
         success: true,
         message: "Login successful",
+        role: userRole,
       },
       { status: 200 },
     );
