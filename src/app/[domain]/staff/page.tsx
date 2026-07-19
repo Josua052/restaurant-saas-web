@@ -2,12 +2,19 @@ import {
   Armchair,
   CalendarCheck,
   Plus,
-  Hourglass,
   AlertCircle,
 } from "lucide-react";
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+
+interface ReservationStats {
+  total_reservations: number;
+}
+
+interface TableStats {
+  active_tables: number;
+  total_tables: number;
+}
 
 export default async function TenantStaffDashboard({
   params,
@@ -15,13 +22,13 @@ export default async function TenantStaffDashboard({
   params: Promise<{ domain: string }>;
 }) {
   const { domain } = await params;
-  
+
   const cookieStore = await cookies();
   const token = cookieStore.get("staff_access_token")?.value;
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  let reservationStats: any = null;
-  let tableStats: any = null;
+  let reservationStats: ReservationStats | null = null;
+  let tableStats: TableStats | null = null;
   let fetchError = null;
   let redirectUrl = "";
   if (token) {
@@ -54,11 +61,12 @@ export default async function TenantStaffDashboard({
         reservationStats = jsonRes.data || { total_reservations: 0 };
         tableStats = jsonTab.data || { active_tables: 0, total_tables: 0 };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Staff Dashboard Stats Fetch Error:", error);
       fetchError =
-        error.message ||
-        "Network error. Make sure the backend is running and endpoints exist.";
+        error instanceof Error
+          ? error.message
+          : "Network error. Make sure the backend is running and endpoints exist.";
     }
   } else {
     redirectUrl = `/${domain}/login`;
@@ -81,7 +89,7 @@ export default async function TenantStaffDashboard({
           Welcome back, Staff
         </h1>
         <p className="text-slate-500 mt-1">
-          Here's what's happening at your branch today.
+          Here&apos;s what&apos;s happening at your branch today.
         </p>
       </div>
 
@@ -148,7 +156,7 @@ export default async function TenantStaffDashboard({
               <rect x="90" y="90" width="30" height="30" rx="4" fill="white"/>
             </svg>
           </div>
-          
+
           <div className="relative z-10">
             <h3 className="text-white text-lg font-bold mb-1">New Walk-in?</h3>
             <p className="text-indigo-200 text-sm mb-4">Quickly assign a table.</p>
