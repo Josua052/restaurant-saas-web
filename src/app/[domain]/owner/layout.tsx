@@ -47,7 +47,7 @@ export default async function OwnerLayout({
 
           profileData = {
             restaurantName: json.data.restaurant_name || "",
-            branchAddress: json.data.branch_address || "",
+            branchAddress: json.data.branch_address || json.data.address || "",
             currency: json.data.currency || "IDR",
             logoUrl: json.data.logo_url || "",
           };

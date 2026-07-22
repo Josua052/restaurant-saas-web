@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Star, Bell, Grip, Menu } from "lucide-react";
 import TenantSidebar from "@/components/tenant-sidebar";
 import UserProfileDropdown from "@/components/user-profile-dropdown";
+import NetworkStatus from "@/components/network-status";
 
 import { ProfileProvider, type ProfileData } from "@/providers/ProfileProvider";
 import { cookies } from "next/headers";
@@ -38,7 +39,7 @@ export default async function StaffLayout({
         if (json.data) {
           profileData = {
             restaurantName: json.data.restaurant_name || "",
-            branchAddress: json.data.branch_address || "",
+            branchAddress: json.data.branch_address || json.data.address || "",
             currency: json.data.currency || "IDR",
             logoUrl: json.data.logo_url || "",
           };
@@ -71,6 +72,7 @@ export default async function StaffLayout({
             </button>
 
             <div className="flex items-center gap-4 md:gap-6">
+              <NetworkStatus />
               <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-slate-100 text-slate-700 rounded-full font-bold text-xs tracking-wide">
                 <Star className="w-3.5 h-3.5 fill-slate-700" />
                 STAFF

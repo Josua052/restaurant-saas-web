@@ -29,13 +29,15 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuspendedModal, setShowSuspendedModal] = useState(false);
 
-  useEffect(() => {
-    // Check if redirected due to suspension
+useEffect(() => {
     if (typeof window !== "undefined") {
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.get("suspended") === "true") {
-        setShowSuspendedModal(true);
-        // Optional: clean up URL
+        
+        setTimeout(() => {
+          setShowSuspendedModal(true);
+        }, 0);
+
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
@@ -103,13 +105,6 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {error && (
-          <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-600 py-3 mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="ml-2">{error}</AlertDescription>
-          </Alert>
-        )}
-
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium text-slate-700">Email Address</Label>
           <div className="relative">
@@ -184,6 +179,30 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
               className="bg-slate-900 hover:bg-slate-800 text-white w-full sm:w-auto px-8"
             >
               Understood
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!error} onOpenChange={(open) => !open && setError(null)}>
+        <DialogContent className="sm:max-w-md text-center border-t-4 border-t-red-500">
+          <DialogHeader>
+            <div className="mx-auto bg-red-50 w-16 h-16 flex items-center justify-center rounded-full mb-4">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-slate-900 text-center">
+              Login Failed
+            </DialogTitle>
+          </DialogHeader>
+          <DialogDescription className="text-base text-slate-600 text-center pt-2">
+            {error}
+          </DialogDescription>
+          <div className="flex justify-center mt-6">
+            <Button 
+              onClick={() => setError(null)}
+              className="bg-slate-900 hover:bg-slate-800 text-white w-full sm:w-auto px-8"
+            >
+              Try Again
             </Button>
           </div>
         </DialogContent>

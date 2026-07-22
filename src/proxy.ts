@@ -94,7 +94,17 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
-  // 2. Domain & Tenant Routing Logic
+  // 2. Route Protection for Tenant Areas
+  const isOwnerArea = url.pathname.startsWith('/owner');
+  const isStaffArea = url.pathname.startsWith('/staff');
+
+  if (isOwnerArea || isStaffArea) {
+    if (!accessToken && !refreshToken) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+  }
+
+  // 3. Domain & Tenant Routing Logic
   const allowedRootDomains = ["namawebsite.com", "localhost", "127.0.0.1"];
   const isLocalIP = domain.startsWith("192.168.");
   

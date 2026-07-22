@@ -35,13 +35,15 @@ export default async function TenantStaffDashboard({
     try {
       const headers = { Authorization: `Bearer ${token}` };
 
+      const API_URL_V2 = API_URL ? API_URL.replace("/v1", "/v2") : "";
+
       // Fetch endpoints concurrently
       const [resReservations, resTables] = await Promise.all([
-        fetch(`${API_URL}/management/reservations/stats`, {
+        fetch(`${API_URL_V2}/management/reservations/stats`, {
           headers,
           cache: "no-store",
         }),
-        fetch(`${API_URL}/management/tables/stats`, {
+        fetch(`${API_URL_V2}/management/tables/stats`, {
           headers,
           cache: "no-store",
         }),

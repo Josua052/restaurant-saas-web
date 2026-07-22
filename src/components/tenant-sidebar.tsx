@@ -22,7 +22,7 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
   const router = useRouter();
   const domain = (params?.domain as string) || "";
   const { restaurantName, branchAddress, logoUrl } = useProfile();
-  
+
   const basePath = `/${domain}/${role}`;
 
   const handleLogout = async (e: React.MouseEvent) => {
@@ -79,12 +79,12 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
   const logoLetter = restaurantName
     ? restaurantName.charAt(0).toUpperCase()
     : "R";
-  const displayAddress = branchAddress || "No Address Provided";
+  const displayAddress = branchAddress;
 
   return (
-    <aside className="hidden md:flex w-[280px] bg-white border-r border-slate-200 flex-col shrink-0 h-full">
+    <aside className="hidden md:flex md:w-56 lg:w-60 xl:w-[280px] bg-white border-r border-slate-200 flex-col shrink-0 h-full transition-all duration-300">
       {/* Logo Area */}
-      <div className="h-20 flex items-center px-6 gap-3 shrink-0 border-b border-transparent">
+      <div className="h-20 flex items-center md:px-4 xl:px-6 gap-3 shrink-0 border-b border-transparent">
         {logoUrl ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
@@ -108,7 +108,7 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 flex flex-col gap-1.5 overflow-y-auto">
+      <nav className="flex-1 md:px-3 xl:px-4 py-6 flex flex-col gap-1.5 overflow-y-auto">
         {navItems.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
@@ -123,16 +123,16 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
               }`}
             >
               <Icon
-                className={`w-5 h-5 ${active ? "text-white" : "text-slate-500"}`}
+                className={`w-5 h-5 shrink-0 ${active ? "text-white" : "text-slate-500"}`}
               />
-              {item.name}
+              <span className="truncate">{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Bottom Nav */}
-      <div className="p-4 border-t border-slate-100 flex flex-col gap-1.5 shrink-0">
+      <div className="md:p-3 xl:p-4 border-t border-slate-100 flex flex-col gap-1.5 shrink-0">
         {role === "owner" && (
           <Link
             href={`${basePath}/settings`}
@@ -143,20 +143,19 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
             }`}
           >
             <Settings
-              className={`w-5 h-5 ${isActive(`${basePath}/settings`) ? "text-white" : "text-slate-500"}`}
+              className={`w-5 h-5 shrink-0 ${isActive(`${basePath}/settings`) ? "text-white" : "text-slate-500"}`}
             />
-            Settings
+            <span className="truncate">Settings</span>
           </Link>
         )}
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors w-full text-left"
         >
-          <LogOut className="w-5 h-5" />
-          Logout
+          <LogOut className="w-5 h-5 shrink-0" />
+          <span className="truncate">Logout</span>
         </button>
       </div>
     </aside>
   );
 }
-
