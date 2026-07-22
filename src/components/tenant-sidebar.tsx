@@ -9,6 +9,9 @@ import {
   Users,
   Settings,
   LogOut,
+  ChefHat,
+  ClipboardList,
+  Armchair,
 } from "lucide-react";
 import { useProfile } from "@/providers/ProfileProvider";
 
@@ -59,13 +62,24 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
 
   const navItems = [
     { name: "Dashboard", href: basePath, icon: LayoutDashboard },
+  ];
+
+  if (role === "staff") {
+    navItems.push(
+      { name: "Orders", href: `${basePath}/orders`, icon: ClipboardList },
+      { name: "Kitchen", href: `${basePath}/kitchen`, icon: ChefHat }
+    );
+  }
+
+  navItems.push(
+    { name: "Tables", href: `${basePath}/tables`, icon: Armchair },
     {
       name: "Reservations",
       href: `${basePath}/reservations`,
       icon: CalendarCheck,
     },
-    { name: "Menu", href: `${basePath}/menu`, icon: Utensils },
-  ];
+    { name: "Menu", href: `${basePath}/menu`, icon: Utensils }
+  );
 
   if (role === "owner") {
     navItems.push({

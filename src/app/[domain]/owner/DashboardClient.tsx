@@ -27,7 +27,7 @@ import {
   Cell,
 } from "recharts";
 
-type FilterType = "today" | "this_week" | "this_month" | "this_year";
+type FilterType = "today" | "this_week" | "this_month" | "this_year" | "custom";
 
 interface DashboardStatsResponse {
   total_revenue: number;
@@ -75,10 +75,21 @@ export default function DashboardClient({
   apiUrl: string;
 }) {
   const [filter, setFilter] = useState<FilterType>("this_month");
+  const [activeTab, setActiveTab] = useState<string>("this_month");
+  const [customDate, setCustomDate] = useState<Date>(new Date());
+
+  // Determine query parameters
+  let queryParams = `period=${filter}`;
+  if (filter === "custom") {
+    // Format date as YYYY-MM-DD
+    const tzOffset = customDate.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(customDate.getTime() - tzOffset).toISOString().split('T')[0];
+    queryParams += `&start_date=${localISOTime}&end_date=${localISOTime}`;
+  }
 
   // Fetch data using SWR
   const { data, error, isLoading } = useSWR(
-    [`${apiUrl}/management/dashboard/owner?period=${filter}`, token],
+    [`${apiUrl}/management/dashboard/owner?${queryParams}`, token],
     fetcher
   );
 
@@ -131,20 +142,47 @@ export default function DashboardClient({
             Ekspor Excel
           </button>
 
-          {/* Date Picker Placeholder */}
+          {/* Interactive Date Picker */}
           <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
-            <button className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors">
+            <button 
+              onClick={() => {
+                const newDate = new Date(customDate);
+                newDate.setDate(newDate.getDate() - 1);
+                setCustomDate(newDate);
+                setFilter("custom");
+              }}
+              className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
+            >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <div className="flex items-center gap-2 px-3 py-1 text-sm font-medium text-slate-700">
+            <div className="relative flex items-center gap-2 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer rounded-md transition-colors">
               <CalendarIcon className="w-4 h-4 text-slate-400" />
-              {new Date().toLocaleDateString("en-GB", {
+              {customDate.toLocaleDateString("en-GB", {
                 day: "2-digit",
                 month: "short",
                 year: "numeric",
               })}
+              <input 
+                type="date"
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                value={new Date(customDate.getTime() - customDate.getTimezoneOffset() * 60000).toISOString().split('T')[0]}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setCustomDate(new Date(e.target.value));
+                    setFilter("custom");
+                  }
+                }}
+              />
             </div>
-            <button className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors">
+            <button 
+              onClick={() => {
+                const newDate = new Date(customDate);
+                newDate.setDate(newDate.getDate() + 1);
+                setCustomDate(newDate);
+                setFilter("custom");
+              }}
+              className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
+            >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -253,9 +291,9 @@ export default function DashboardClient({
       <div className="flex items-center justify-end mb-4">
         <div className="flex bg-slate-200/50 p-1 rounded-xl">
           <button
-            onClick={() => setFilter("today")}
+            onClick={() => { setFilter("today"); setActiveTab("today"); }}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${
-              filter === "today"
+              activeTab === "today"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
             }`}
@@ -263,9 +301,9 @@ export default function DashboardClient({
             Today
           </button>
           <button
-            onClick={() => setFilter("this_week")}
+            onClick={() => { setFilter("this_week"); setActiveTab("this_week"); }}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${
-              filter === "this_week"
+              activeTab === "this_week"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
             }`}
@@ -273,9 +311,9 @@ export default function DashboardClient({
             This Week
           </button>
           <button
-            onClick={() => setFilter("this_month")}
+            onClick={() => { setFilter("this_month"); setActiveTab("this_month"); }}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${
-              filter === "this_month"
+              activeTab === "this_month"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
             }`}
@@ -283,9 +321,9 @@ export default function DashboardClient({
             This Month
           </button>
           <button
-            onClick={() => setFilter("this_year")}
+            onClick={() => { setFilter("this_year"); setActiveTab("this_year"); }}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${
-              filter === "this_year"
+              activeTab === "this_year"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
             }`}
