@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -23,16 +23,16 @@ type TableSection = {
 };
 
 type TableData = {
-  ID: string;
-  TableNumber: string;
-  Capacity: number;
+  id: string;
+  table_number: string;
+  capacity: number;
   section?: TableSection;
-  Status: number;
-  CreatedAt: string;
+	status: number;
+	updated_at: string;
 };
 
-// SWR Fetcher
-const fetcher = async ([url, token]: [string, string]) => {
+// SWR Fetchers
+const fetcherFull = async ([url, token]: [string, string]) => {
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -45,7 +45,11 @@ const fetcher = async ([url, token]: [string, string]) => {
       errData.error?.message || errData.message || "Failed to fetch data",
     );
   }
-  const json = await res.json();
+  return res.json();
+};
+
+const fetcher = async (args: [string, string]) => {
+  const json = await fetcherFull(args);
   return json.data;
 };
 
@@ -57,7 +61,22 @@ export default function TablesClient({
   apiUrl: string;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeZone, setActiveZone] = useState("All Zones");
+  const [currentPage, setCurrentPage] = useState(1);
+  const limit = 10;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset page on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset page on zone change
+  }, [activeZone]);
 
   // Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -73,14 +92,30 @@ export default function TablesClient({
   const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
 
   // Data Fetching
-  const { data: rawTables = [], isLoading: tablesLoading } = useSWR<
-    TableData[]
-  >([`${apiUrl}/management/tables`, token], fetcher);
-
   const { data: sections = [] } = useSWR<TableSection[]>(
     [`${apiUrl}/management/sections`, token],
     fetcher,
   );
+
+  // Data Fetching
+  const queryParams = new URLSearchParams({
+    page: currentPage.toString(),
+    limit: limit.toString(),
+  });
+  if (debouncedSearch) queryParams.append("search", debouncedSearch);
+  if (activeZone && activeZone !== "All Zones") {
+    const section = sections.find((s) => s.name === activeZone);
+    if (section) queryParams.append("section_id", section.id);
+  }
+
+  const { data: tablesRes, isLoading: tablesLoading } = useSWR(
+    [`${apiUrl}/management/tables?${queryParams.toString()}`, token],
+    fetcherFull
+  );
+  
+  const rawTables: TableData[] = tablesRes?.data || [];
+  const totalTables: number = tablesRes?.meta?.total || 0;
+  const totalPages = Math.ceil(totalTables / limit) || 1;
 
   // Form States (for Add/Edit)
   const [formData, setFormData] = useState({
@@ -96,15 +131,8 @@ export default function TablesClient({
   // Zone filter options for the Mantine Select (moved from the old zone-tabs UI)
   const zoneOptions = ["All Zones", ...sections.map((zone) => zone.name)];
 
-  // Filter & Search Logic
-  const filteredTables = rawTables.filter((table) => {
-    const matchesSearch = table.TableNumber.toLowerCase().includes(
-      searchQuery.toLowerCase(),
-    );
-    const matchesZone =
-      activeZone === "All Zones" || table.section?.name === activeZone;
-    return matchesSearch && matchesZone;
-  });
+  // Filtering and searching are now handled by the backend pagination endpoint
+  const filteredTables = rawTables;
 
   // Handlers
   const handleOpenAddModal = () => {
@@ -116,8 +144,8 @@ export default function TablesClient({
   const handleOpenEditModal = (table: TableData) => {
     setSelectedTable(table);
     setFormData({
-      name: table.TableNumber,
-      capacity: table.Capacity,
+      name: table.table_number,
+      capacity: table.capacity,
       area_id: table.section?.id || sections[0]?.id || "",
     });
     setFormError("");
@@ -176,7 +204,7 @@ export default function TablesClient({
           ...(formData.area_id ? { section_id: formData.area_id } : {}),
         };
         const res = await fetch(
-          `${apiUrl}/management/tables/${selectedTable.ID}`,
+          `${apiUrl}/management/tables/${selectedTable.id}`,
           {
             method: "PUT",
             headers: {
@@ -195,7 +223,7 @@ export default function TablesClient({
         toast.success("Table updated successfully");
       }
 
-      mutate([`${apiUrl}/management/tables`, token]);
+      mutate([`${apiUrl}/management/tables?${queryParams.toString()}`, token]);
       handleCloseModals();
     } catch (err: any) {
       setFormError(err.message || "An error occurred");
@@ -207,7 +235,7 @@ export default function TablesClient({
     if (!selectedTable) return;
     try {
       const res = await fetch(
-        `${apiUrl}/management/tables/${selectedTable.ID}`,
+        `${apiUrl}/management/tables/${selectedTable.id}`,
         {
           method: "DELETE",
           headers: {
@@ -223,10 +251,37 @@ export default function TablesClient({
       }
       toast.success("Table deleted successfully");
 
-      mutate([`${apiUrl}/management/tables`, token]);
+      mutate([`${apiUrl}/management/tables?${queryParams.toString()}`, token]);
       handleCloseModals();
     } catch (err: any) {
       toast.error(err.message || "Failed to delete table");
+    }
+  };
+
+  const handleToggleStatus = async (table: TableData) => {
+    const newStatus = table.status === 4 ? 1 : 4; // Toggle between Closed (4) and Available (1)
+    
+    // If it's occupied (2) or reserved (3), we might still allow closing it or blocking it, but let's assume Owner has full control
+    try {
+      const res = await fetch(`${apiUrl}/management/tables/${table.id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || errData.error || "Failed to update table status");
+      }
+
+      toast.success(`Table marked as ${newStatus === 4 ? 'Closed' : 'Available'}`);
+      mutate([`${apiUrl}/management/tables?${queryParams.toString()}`, token]);
+      setActivePopover(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update status");
     }
   };
 
@@ -371,33 +426,42 @@ export default function TablesClient({
                     filteredTables.length > 2;
                   return (
                     <tr
-                      key={table.ID}
+                      key={table.id}
                       className="hover:bg-slate-50 transition-colors"
                     >
                       <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                        {table.TableNumber}
+                        <div className="flex items-center gap-2">
+                          <span className={table.status === 4 ? "text-slate-400 line-through" : ""}>
+                            {table.table_number}
+                          </span>
+                          {table.status === 4 && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-600 uppercase tracking-wide">
+                              Closed
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-600">
                         <div className="flex items-center gap-1.5">
                           <User className="w-4 h-4 text-slate-400" />{" "}
-                          {table.Capacity}
+                          {table.capacity}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-600">
                         {table.section?.name || "-"}
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-500">
-                        {new Date(table.CreatedAt).toLocaleDateString("en-GB", {
+                        {table.updated_at ? new Date(table.updated_at).toLocaleDateString("en-GB", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
-                        })}
+                        }) : "-"}
                       </td>
                       <td className="px-6 py-4 text-center relative">
                         <button
                           onClick={() =>
                             setActivePopover(
-                              activePopover === table.ID ? null : table.ID,
+                              activePopover === table.id ? null : table.id,
                             )
                           }
                           className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors"
@@ -406,7 +470,7 @@ export default function TablesClient({
                         </button>
 
                         {/* Simple Custom Popover */}
-                        {activePopover === table.ID && (
+                        {activePopover === table.id && (
                           <div
                             className={`absolute right-8 ${isLastTwo ? "bottom-8" : "top-10"} bg-white border border-slate-200 shadow-lg rounded-xl w-32 py-1 z-10 text-sm overflow-hidden`}
                           >
@@ -415,6 +479,12 @@ export default function TablesClient({
                               className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 transition-colors"
                             >
                               Edit
+                            </button>
+                            <button
+                              onClick={() => handleToggleStatus(table)}
+                              className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 transition-colors"
+                            >
+                              {table.status === 4 ? "Mark Available" : "Close Table"}
                             </button>
                             <button
                               onClick={() => handleOpenDeleteModal(table)}
@@ -435,17 +505,24 @@ export default function TablesClient({
           {/* Pagination Footer */}
           <div className="border-t border-slate-200 px-6 py-4 flex items-center justify-between bg-slate-50/50">
             <span className="text-sm text-slate-500">
-              Showing 1 to {filteredTables.length} of {filteredTables.length}{" "}
-              tables
+              Showing {totalTables > 0 ? (currentPage - 1) * limit + 1 : 0} to {Math.min(currentPage * limit, totalTables)} of {totalTables} tables
             </span>
             <div className="flex items-center gap-1">
-              <button className="px-3 py-1.5 border border-slate-200 rounded-md text-sm text-slate-400 bg-slate-100 cursor-not-allowed">
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 border border-slate-200 rounded-md text-sm text-slate-600 bg-white hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+              >
                 Previous
               </button>
               <button className="px-3 py-1.5 border border-indigo-600 bg-indigo-600 text-white rounded-md text-sm font-medium shadow-sm">
-                1
+                {currentPage}
               </button>
-              <button className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-md text-sm text-slate-600 transition-colors">
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="px-3 py-1.5 border border-slate-200 rounded-md text-sm text-slate-600 bg-white hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+              >
                 Next
               </button>
             </div>
@@ -608,11 +685,11 @@ export default function TablesClient({
                   Delete Table?
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Are you sure you want to delete{" "}
-                  <span className="font-bold text-slate-700">
-                    {selectedTable?.TableNumber}
+                  Are you sure you want to delete table \"
+                  <span className="font-semibold text-slate-900">
+                    {selectedTable?.table_number}
                   </span>
-                  ? This action cannot be undone.
+                  \"? This action cannot be undone and will remove all associated
                 </p>
               </div>
               <div className="px-6 py-4 bg-slate-50 flex items-center justify-center gap-3">
