@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  User, 
-  MoreVertical, 
-  X, 
+import {
+  Search,
+  Filter,
+  Plus,
+  User,
+  MoreVertical,
+  X,
   AlertCircle,
   Armchair,
-  Hourglass
+  Hourglass,
 } from "lucide-react";
+import { Select } from "@mantine/core";
 import useSWR, { mutate } from "swr";
 import { toast } from "sonner"; // Assuming sonner is installed as typical in this project
 
@@ -40,7 +41,9 @@ const fetcher = async ([url, token]: [string, string]) => {
   });
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.error?.message || errData.message || "Failed to fetch data");
+    throw new Error(
+      errData.error?.message || errData.message || "Failed to fetch data",
+    );
   }
   const json = await res.json();
   return json.data;
@@ -60,7 +63,7 @@ export default function TablesClient({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  
+
   // Area Modal State
   const [isAddAreaModalOpen, setIsAddAreaModalOpen] = useState(false);
   const [areaName, setAreaName] = useState("");
@@ -70,27 +73,36 @@ export default function TablesClient({
   const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
 
   // Data Fetching
-  const { data: rawTables = [], isLoading: tablesLoading } = useSWR<TableData[]>(
-    [`${apiUrl}/management/tables`, token],
-    fetcher
-  );
+  const { data: rawTables = [], isLoading: tablesLoading } = useSWR<
+    TableData[]
+  >([`${apiUrl}/management/tables`, token], fetcher);
 
   const { data: sections = [] } = useSWR<TableSection[]>(
     [`${apiUrl}/management/sections`, token],
-    fetcher
+    fetcher,
   );
 
   // Form States (for Add/Edit)
-  const [formData, setFormData] = useState({ name: "", capacity: 4, area_id: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    capacity: 4,
+    area_id: "",
+  });
   const [formError, setFormError] = useState("");
-  
+
   // Popover State (for action menu)
   const [activePopover, setActivePopover] = useState<string | null>(null);
 
+  // Zone filter options for the Mantine Select (moved from the old zone-tabs UI)
+  const zoneOptions = ["All Zones", ...sections.map((zone) => zone.name)];
+
   // Filter & Search Logic
-  const filteredTables = rawTables.filter(table => {
-    const matchesSearch = table.TableNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesZone = activeZone === "All Zones" || table.section?.name === activeZone;
+  const filteredTables = rawTables.filter((table) => {
+    const matchesSearch = table.TableNumber.toLowerCase().includes(
+      searchQuery.toLowerCase(),
+    );
+    const matchesZone =
+      activeZone === "All Zones" || table.section?.name === activeZone;
     return matchesSearch && matchesZone;
   });
 
@@ -103,10 +115,10 @@ export default function TablesClient({
 
   const handleOpenEditModal = (table: TableData) => {
     setSelectedTable(table);
-    setFormData({ 
-      name: table.TableNumber, 
-      capacity: table.Capacity, 
-      area_id: table.section?.id || sections[0]?.id || "" 
+    setFormData({
+      name: table.TableNumber,
+      capacity: table.Capacity,
+      area_id: table.section?.id || sections[0]?.id || "",
     });
     setFormError("");
     setIsEditModalOpen(true);
@@ -140,42 +152,49 @@ export default function TablesClient({
         const payload = {
           table_number: formData.name,
           capacity: Number(formData.capacity),
-          ...(formData.area_id ? { section_id: formData.area_id } : {})
+          ...(formData.area_id ? { section_id: formData.area_id } : {}),
         };
         const res = await fetch(`${apiUrl}/management/tables`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || errData.error || "Failed to add table");
+          throw new Error(
+            errData.message || errData.error || "Failed to add table",
+          );
         }
         toast.success("Table added successfully");
       } else if (isEditModalOpen && selectedTable) {
         const payload = {
           table_number: formData.name,
           capacity: Number(formData.capacity),
-          ...(formData.area_id ? { section_id: formData.area_id } : {})
+          ...(formData.area_id ? { section_id: formData.area_id } : {}),
         };
-        const res = await fetch(`${apiUrl}/management/tables/${selectedTable.ID}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
+        const res = await fetch(
+          `${apiUrl}/management/tables/${selectedTable.ID}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
           },
-          body: JSON.stringify(payload)
-        });
+        );
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || errData.error || "Failed to update table");
+          throw new Error(
+            errData.message || errData.error || "Failed to update table",
+          );
         }
         toast.success("Table updated successfully");
       }
-      
+
       mutate([`${apiUrl}/management/tables`, token]);
       handleCloseModals();
     } catch (err: any) {
@@ -187,18 +206,23 @@ export default function TablesClient({
   const handleDeleteData = async () => {
     if (!selectedTable) return;
     try {
-      const res = await fetch(`${apiUrl}/management/tables/${selectedTable.ID}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const res = await fetch(
+        `${apiUrl}/management/tables/${selectedTable.ID}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || errData.error || "Failed to delete table");
+        throw new Error(
+          errData.message || errData.error || "Failed to delete table",
+        );
       }
       toast.success("Table deleted successfully");
-      
+
       mutate([`${apiUrl}/management/tables`, token]);
       handleCloseModals();
     } catch (err: any) {
@@ -211,21 +235,23 @@ export default function TablesClient({
       setAreaError("Area name is required");
       return;
     }
-    
+
     try {
       const res = await fetch(`${apiUrl}/management/sections`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: areaName.trim() })
+        body: JSON.stringify({ name: areaName.trim() }),
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || errData.error || "Failed to add area");
+        throw new Error(
+          errData.message || errData.error || "Failed to add area",
+        );
       }
-      
+
       toast.success("Area added successfully");
       setAreaName("");
       setIsAddAreaModalOpen(false);
@@ -244,9 +270,10 @@ export default function TablesClient({
       </div>
       <h3 className="text-xl font-bold text-slate-900 mb-2">No tables found</h3>
       <p className="text-slate-500 text-center max-w-sm mb-6">
-        Add your first table to get started or try adjusting your filters if you're looking for something specific.
+        Add your first table to get started or try adjusting your filters if
+        you're looking for something specific.
       </p>
-      <button 
+      <button
         onClick={handleOpenAddModal}
         className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
       >
@@ -258,11 +285,15 @@ export default function TablesClient({
 
   return (
     <div className="w-full min-h-screen bg-slate-50/50 p-6 md:p-8 animate-in fade-in duration-500 font-sans">
-      
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Table Management</h1>
-        <p className="text-slate-500 mt-1">Configure and monitor your restaurant's floor plan and seating capacity.</p>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          Table Management
+        </h1>
+        <p className="text-slate-500 mt-1">
+          Configure and monitor your restaurant's floor plan and seating
+          capacity.
+        </p>
       </div>
 
       {/* Action Bar */}
@@ -271,29 +302,36 @@ export default function TablesClient({
           {/* Search Bar */}
           <div className="relative flex-1 md:max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search tables..." 
+            <input
+              type="text"
+              placeholder="Search tables..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
             />
           </div>
-          {/* Filter Button */}
-          <button className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 transition-colors">
-            <Filter className="w-4 h-4" />
-            Filters
-          </button>
+          {/* Zone Filter (Mantine Select) — replaces the old zone tabs */}
+          <Select
+            placeholder="Filter zone"
+            leftSection={<Filter className="w-4 h-4" />}
+            data={zoneOptions}
+            value={activeZone}
+            onChange={(value) => setActiveZone(value ?? "All Zones")}
+            allowDeselect={false}
+            checkIconPosition="right"
+            comboboxProps={{ withinPortal: true }}
+            className="w-full md:w-56"
+          />
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <button 
+          <button
             onClick={() => setIsAddAreaModalOpen(true)}
             className="w-full md:w-auto bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Add Area
           </button>
-          <button 
+          <button
             onClick={handleOpenAddModal}
             className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm shadow-indigo-200"
           >
@@ -303,45 +341,15 @@ export default function TablesClient({
         </div>
       </div>
 
-      {/* Zone Tabs */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <button 
-            onClick={() => setActiveZone("All Zones")}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
-              activeZone === "All Zones" 
-                ? "border-slate-300 bg-white text-slate-900 shadow-sm" 
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
-            }`}
-          >
-            All Zones
-          </button>
-          {sections.map(zone => (
-            <button 
-              key={zone.id}
-              onClick={() => setActiveZone(zone.name)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
-                activeZone === zone.name 
-                  ? "border-slate-300 bg-white text-slate-900 shadow-sm" 
-                  : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
-              }`}
-            >
-              {zone.name}
-            </button>
-          ))}
-        </div>
-        <p className="text-sm text-slate-500 hidden md:block">
-          Showing {filteredTables.length} tables
-        </p>
-      </div>
-
       {/* Main Content Area */}
       {tablesLoading ? (
         <div className="py-24 text-center text-slate-500 flex flex-col items-center">
           <Hourglass className="w-8 h-8 animate-spin mb-4 text-indigo-500" />
           Loading tables...
         </div>
-      ) : filteredTables.length === 0 ? renderEmptyState() : (
+      ) : filteredTables.length === 0 ? (
+        renderEmptyState()
+      ) : (
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm">
           <div className="overflow-x-auto lg:overflow-visible">
             <table className="w-full text-left border-collapse">
@@ -351,75 +359,114 @@ export default function TablesClient({
                   <th className="px-6 py-4">CAPACITY</th>
                   <th className="px-6 py-4">AREA</th>
                   <th className="px-6 py-4">LAST UPDATED</th>
-                  <th className="px-6 py-4 text-center rounded-tr-2xl">ACTIONS</th>
+                  <th className="px-6 py-4 text-center rounded-tr-2xl">
+                    ACTIONS
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredTables.map((table, index) => {
-                  const isLastTwo = index >= filteredTables.length - 2 && filteredTables.length > 2;
+                  const isLastTwo =
+                    index >= filteredTables.length - 2 &&
+                    filteredTables.length > 2;
                   return (
-                  <tr key={table.ID} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-bold text-slate-900">{table.TableNumber}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      <div className="flex items-center gap-1.5">
-                        <User className="w-4 h-4 text-slate-400" /> {table.Capacity}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{table.section?.name || "-"}</td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {new Date(table.CreatedAt).toLocaleDateString("en-GB", {
-                        day: "2-digit", month: "short", year: "numeric"
-                      })}
-                    </td>
-                    <td className="px-6 py-4 text-center relative">
-                      <button 
-                        onClick={() => setActivePopover(activePopover === table.ID ? null : table.ID)}
-                        className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      
-                      {/* Simple Custom Popover */}
-                      {activePopover === table.ID && (
-                        <div className={`absolute right-8 ${isLastTwo ? 'bottom-8' : 'top-10'} bg-white border border-slate-200 shadow-lg rounded-xl w-32 py-1 z-10 text-sm overflow-hidden`}>
-                          <button 
-                            onClick={() => handleOpenEditModal(table)}
-                            className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleOpenDeleteModal(table)}
-                            className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 transition-colors"
-                          >
-                            Delete
-                          </button>
+                    <tr
+                      key={table.ID}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 text-sm font-bold text-slate-900">
+                        {table.TableNumber}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-4 h-4 text-slate-400" />{" "}
+                          {table.Capacity}
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                )})}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {table.section?.name || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-500">
+                        {new Date(table.CreatedAt).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                      <td className="px-6 py-4 text-center relative">
+                        <button
+                          onClick={() =>
+                            setActivePopover(
+                              activePopover === table.ID ? null : table.ID,
+                            )
+                          }
+                          className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+
+                        {/* Simple Custom Popover */}
+                        {activePopover === table.ID && (
+                          <div
+                            className={`absolute right-8 ${isLastTwo ? "bottom-8" : "top-10"} bg-white border border-slate-200 shadow-lg rounded-xl w-32 py-1 z-10 text-sm overflow-hidden`}
+                          >
+                            <button
+                              onClick={() => handleOpenEditModal(table)}
+                              className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleOpenDeleteModal(table)}
+                              className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          
+
           {/* Pagination Footer */}
           <div className="border-t border-slate-200 px-6 py-4 flex items-center justify-between bg-slate-50/50">
-            <span className="text-sm text-slate-500">Showing 1 to {filteredTables.length} of {filteredTables.length} tables</span>
+            <span className="text-sm text-slate-500">
+              Showing 1 to {filteredTables.length} of {filteredTables.length}{" "}
+              tables
+            </span>
             <div className="flex items-center gap-1">
-              <button className="px-3 py-1.5 border border-slate-200 rounded-md text-sm text-slate-400 bg-slate-100 cursor-not-allowed">Previous</button>
-              <button className="px-3 py-1.5 border border-indigo-600 bg-indigo-600 text-white rounded-md text-sm font-medium shadow-sm">1</button>
-              <button className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-md text-sm text-slate-600 transition-colors">Next</button>
+              <button className="px-3 py-1.5 border border-slate-200 rounded-md text-sm text-slate-400 bg-slate-100 cursor-not-allowed">
+                Previous
+              </button>
+              <button className="px-3 py-1.5 border border-indigo-600 bg-indigo-600 text-white rounded-md text-sm font-medium shadow-sm">
+                1
+              </button>
+              <button className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-md text-sm text-slate-600 transition-colors">
+                Next
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Results Count */}
+      <div className="flex items-center justify-end mt-6">
+        <p className="text-sm text-slate-500">
+          Showing {filteredTables.length} tables
+        </p>
+      </div>
+
       {/* MODALS */}
       {/* Overlay */}
-      {(isAddModalOpen || isEditModalOpen || isDeleteModalOpen || isAddAreaModalOpen) && (
+      {(isAddModalOpen ||
+        isEditModalOpen ||
+        isDeleteModalOpen ||
+        isAddAreaModalOpen) && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          
           {/* Add / Edit Modal */}
           {(isAddModalOpen || isEditModalOpen) && (
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
@@ -429,10 +476,15 @@ export default function TablesClient({
                     {isEditModalOpen ? "Edit Table" : "Add New Table"}
                   </h2>
                   <p className="text-sm text-slate-500 mt-0.5">
-                    {isEditModalOpen ? "Update table information" : "Create a new table for your restaurant floor"}
+                    {isEditModalOpen
+                      ? "Update table information"
+                      : "Create a new table for your restaurant floor"}
                   </p>
                 </div>
-                <button onClick={handleCloseModals} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                <button
+                  onClick={handleCloseModals}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -440,14 +492,20 @@ export default function TablesClient({
               <div className="p-6 flex flex-col gap-5">
                 {/* Name Input */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Table Number / Name *</label>
-                  <input 
-                    type="text" 
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Table Number / Name *
+                  </label>
+                  <input
+                    type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     placeholder="e.g. Table 05"
                     className={`w-full px-4 py-2.5 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all ${
-                      formError ? "border-red-500 focus:ring-red-500/20" : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20"
+                      formError
+                        ? "border-red-500 focus:ring-red-500/20"
+                        : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20"
                     }`}
                   />
                   {formError && (
@@ -461,12 +519,18 @@ export default function TablesClient({
                 {/* Capacity Stepper */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5 flex items-center gap-2">
-                    Table Capacity * <User className="w-3.5 h-3.5 text-slate-400" />
+                    Table Capacity *{" "}
+                    <User className="w-3.5 h-3.5 text-slate-400" />
                   </label>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center border border-slate-200 rounded-lg p-1">
-                      <button 
-                        onClick={() => setFormData({...formData, capacity: Math.max(1, formData.capacity - 1)})}
+                      <button
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            capacity: Math.max(1, formData.capacity - 1),
+                          })
+                        }
                         className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-md text-slate-600 transition-colors"
                       >
                         -
@@ -474,41 +538,56 @@ export default function TablesClient({
                       <div className="w-10 text-center font-semibold text-slate-900 text-sm">
                         {formData.capacity}
                       </div>
-                      <button 
-                        onClick={() => setFormData({...formData, capacity: formData.capacity + 1})}
+                      <button
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            capacity: formData.capacity + 1,
+                          })
+                        }
                         className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-md text-slate-600 transition-colors"
                       >
                         +
                       </button>
                     </div>
-                    <span className="text-sm text-slate-500">Minimum 1 guest</span>
+                    <span className="text-sm text-slate-500">
+                      Minimum 1 guest
+                    </span>
                   </div>
                 </div>
 
                 {/* Area Select */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Select Area *</label>
-                  <select 
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Select Area *
+                  </label>
+                  <select
                     value={formData.area_id}
-                    onChange={(e) => setFormData({...formData, area_id: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, area_id: e.target.value })
+                    }
                     className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none"
                   >
-                    {sections.map(sec => (
-                      <option key={sec.id} value={sec.id}>{sec.name}</option>
+                    {sections.map((sec) => (
+                      <option key={sec.id} value={sec.id}>
+                        {sec.name}
+                      </option>
                     ))}
-                    {sections.length === 0 && <option value="">No areas available</option>}
+                    {sections.length === 0 && (
+                      <option value="">No areas available</option>
+                    )}
                   </select>
                 </div>
               </div>
 
               <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
-                <button 
+                <button
                   onClick={handleCloseModals}
                   className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleSaveData}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
                 >
@@ -525,19 +604,25 @@ export default function TablesClient({
                 <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
                   <AlertCircle className="w-6 h-6" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-900 mb-2">Delete Table?</h2>
+                <h2 className="text-lg font-bold text-slate-900 mb-2">
+                  Delete Table?
+                </h2>
                 <p className="text-sm text-slate-500">
-                  Are you sure you want to delete <span className="font-bold text-slate-700">{selectedTable?.TableNumber}</span>? This action cannot be undone.
+                  Are you sure you want to delete{" "}
+                  <span className="font-bold text-slate-700">
+                    {selectedTable?.TableNumber}
+                  </span>
+                  ? This action cannot be undone.
                 </p>
               </div>
               <div className="px-6 py-4 bg-slate-50 flex items-center justify-center gap-3">
-                <button 
+                <button
                   onClick={handleCloseModals}
                   className="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleDeleteData}
                   className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors shadow-sm"
                 >
@@ -546,20 +631,22 @@ export default function TablesClient({
               </div>
             </div>
           )}
-          
+
           {/* Add Area Modal */}
           {isAddAreaModalOpen && (
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                <h2 className="text-lg font-bold text-slate-900">Add New Area</h2>
-                <button 
+                <h2 className="text-lg font-bold text-slate-900">
+                  Add New Area
+                </h2>
+                <button
                   onClick={handleCloseModals}
                   className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              
+
               <div className="p-6">
                 {areaError && (
                   <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
@@ -567,11 +654,13 @@ export default function TablesClient({
                     {areaError}
                   </div>
                 )}
-                
+
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Area Name *</label>
-                  <input 
-                    type="text" 
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Area Name *
+                  </label>
+                  <input
+                    type="text"
                     value={areaName}
                     onChange={(e) => setAreaName(e.target.value)}
                     placeholder="e.g., VIP Lounge, Outdoor Patio"
@@ -579,15 +668,15 @@ export default function TablesClient({
                   />
                 </div>
               </div>
-              
+
               <div className="px-6 py-4 bg-slate-50 flex justify-end gap-3 border-t border-slate-100">
-                <button 
+                <button
                   onClick={handleCloseModals}
                   className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleSaveArea}
                   className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
                 >
@@ -596,10 +685,8 @@ export default function TablesClient({
               </div>
             </div>
           )}
-
         </div>
       )}
-
     </div>
   );
 }

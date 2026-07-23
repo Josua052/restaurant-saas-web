@@ -18,6 +18,8 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "sonner";
+import { MantineProvider } from "@mantine/core";
+import "@mantine/core/styles.css";
 
 export default function RootLayout({
   children,
@@ -31,8 +33,10 @@ export default function RootLayout({
       className={`${montserrat.variable} ${inter.variable} h-full antialiased`}
     >
       <body suppressHydrationWarning={true} className="min-h-full flex flex-col">
-        {children}
-        <Toaster position="bottom-right" richColors />
+        <MantineProvider>
+          {children}
+          <Toaster position="bottom-right" richColors />
+        </MantineProvider>
       </body>
     </html>
   );
