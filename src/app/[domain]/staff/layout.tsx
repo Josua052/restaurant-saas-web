@@ -88,7 +88,7 @@ export default async function StaffLayout({
           </header>
 
           {/* Page Content */}
-          <div className="flex-1 p-8 overflow-y-auto" suppressHydrationWarning>
+          <div className="flex-1 overflow-y-auto" suppressHydrationWarning>
             {children}
           </div>
         </main>
