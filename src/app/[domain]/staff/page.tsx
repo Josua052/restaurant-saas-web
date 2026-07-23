@@ -1,193 +1,211 @@
 import {
   Armchair,
-  CalendarCheck,
-  Plus,
-  AlertCircle,
+  Calendar,
+  TrendingUp,
+  Utensils,
+  AlertTriangle,
 } from "lucide-react";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 
-interface ReservationStats {
-  total_reservations: number;
-}
-
-interface TableStats {
-  active_tables: number;
-  total_tables: number;
-}
-
-export default async function TenantStaffDashboard({
-  params,
-}: {
-  params: Promise<{ domain: string }>;
-}) {
-  const { domain } = await params;
-
-  const cookieStore = await cookies();
-  const token = cookieStore.get("staff_access_token")?.value;
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-  let reservationStats: ReservationStats | null = null;
-  let tableStats: TableStats | null = null;
-  let fetchError = null;
-  let redirectUrl = "";
-  if (token) {
-    try {
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const API_URL_V2 = API_URL ? API_URL.replace("/v1", "/v2") : "";
-
-      // Fetch endpoints concurrently
-      const [resReservations, resTables] = await Promise.all([
-        fetch(`${API_URL_V2}/management/reservations/stats`, {
-          headers,
-          cache: "no-store",
-        }),
-        fetch(`${API_URL_V2}/management/tables/stats`, {
-          headers,
-          cache: "no-store",
-        }),
-      ]);
-
-      if (resReservations.status === 401 || resTables.status === 401) {
-        redirectUrl = `/${domain}/login`;
-      } else if (!resReservations.ok || !resTables.ok) {
-        console.error("Dashboard API errors");
-        fetchError = "Failed to fetch one or more dashboard metrics.";
-      } else {
-        const [jsonRes, jsonTab] = await Promise.all([
-          resReservations.json(),
-          resTables.json(),
-        ]);
-
-        reservationStats = jsonRes.data || { total_reservations: 0 };
-        tableStats = jsonTab.data || { active_tables: 0, total_tables: 0 };
-      }
-    } catch (error: unknown) {
-      console.error("Staff Dashboard Stats Fetch Error:", error);
-      fetchError =
-        error instanceof Error
-          ? error.message
-          : "Network error. Make sure the backend is running and endpoints exist.";
-    }
-  } else {
-    redirectUrl = `/${domain}/login`;
-  }
-
-  // Perform redirect outside of try-catch block
-  if (redirectUrl) {
-    redirect(redirectUrl);
-  }
-
-  const activeRes = reservationStats?.total_reservations || 0;
-  const activeTab = tableStats?.active_tables || 0;
-  const totalTab = tableStats?.total_tables || 0;
-
+export default async function TenantStaffDashboard() {
   return (
-    <div className="w-full space-y-8 animate-in fade-in duration-500">
+    <div className="w-full space-y-8 animate-in fade-in duration-500 font-sans p-6 md:p-8 bg-slate-50/50 min-h-screen">
       {/* Welcome Title */}
       <div>
-        <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">
-          Welcome back, Staff
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          Welcome back, Arief
         </h1>
         <p className="text-slate-500 mt-1">
-          Here&apos;s what&apos;s happening at your branch today.
+          Here's what's happening at Jakarta Central Branch today.
         </p>
       </div>
 
-      {fetchError && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 border border-red-200">
-          <AlertCircle className="w-5 h-5" />
-          <p className="text-sm font-medium">{fetchError}</p>
-        </div>
-      )}
-
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Card 1: Active Reservations */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative flex flex-col justify-between h-[160px]">
+        
+        {/* Card 1: Total Reservations */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between h-[180px]">
+          {/* Decorative Shape */}
+          <div className="absolute -top-8 -right-8 w-32 h-32 bg-[#F1F0FA] rounded-full opacity-80 pointer-events-none" />
+          
           <div className="flex justify-between items-start relative z-10">
+            <div className="w-12 h-12 bg-[#F1F0FA] text-indigo-600 flex items-center justify-center rounded-xl">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div className="bg-[#D1F4E0] text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+              <TrendingUp className="w-3.5 h-3.5" />
+              +12%
+            </div>
+          </div>
+          
+          <div className="relative z-10 mt-auto">
             <p className="text-slate-500 text-[11px] font-bold tracking-wider uppercase mb-1">
-              Active Reservations
+              Total Reservations
             </p>
-            <div className="w-10 h-10 bg-indigo-600 text-white flex items-center justify-center rounded-lg shadow-sm">
-              <CalendarCheck className="w-5 h-5" />
+            <div className="text-4xl font-bold text-slate-900 leading-none mb-2">
+              142
             </div>
-          </div>
-          <div className="relative z-10 flex items-baseline gap-2">
-            <div className="text-4xl font-bold text-slate-900 leading-none">
-              {activeRes}
-            </div>
-            <p className="text-slate-500 text-sm font-medium">Expected today</p>
-          </div>
-        </div>
-
-        {/* Card 2: Tables Available */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative flex flex-col justify-between h-[160px]">
-          <div className="flex justify-between items-start relative z-10">
-            <p className="text-slate-500 text-[11px] font-bold tracking-wider uppercase mb-1">
-              Tables Available
-            </p>
-            <div className="w-10 h-10 bg-slate-100 text-slate-500 flex items-center justify-center rounded-lg">
-              <Armchair className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="relative z-10 flex items-baseline gap-2">
-            <div className="text-4xl font-bold text-slate-900 leading-none">
-              {activeTab}
-            </div>
-            <p className="text-slate-500 text-sm font-medium">
-              / {totalTab} Total
+            <p className="text-slate-500 text-sm">
+              Expected for today
             </p>
           </div>
         </div>
 
-        {/* Card 3: New Walk-in? */}
-        <div className="bg-indigo-700 p-6 rounded-xl shadow-md relative overflow-hidden flex flex-col justify-between h-[160px]">
-          {/* Decorative background element */}
-          <div className="absolute right-0 bottom-0 opacity-10">
-            <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="10" y="10" width="30" height="30" rx="4" fill="white"/>
-              <rect x="50" y="10" width="30" height="30" rx="4" fill="white"/>
-              <rect x="90" y="10" width="30" height="30" rx="4" fill="white"/>
-              <rect x="10" y="50" width="30" height="30" rx="4" fill="white"/>
-              <rect x="50" y="50" width="30" height="30" rx="4" fill="white"/>
-              <rect x="90" y="50" width="30" height="30" rx="4" fill="white"/>
-              <rect x="10" y="90" width="30" height="30" rx="4" fill="white"/>
-              <rect x="50" y="90" width="30" height="30" rx="4" fill="white"/>
-              <rect x="90" y="90" width="30" height="30" rx="4" fill="white"/>
-            </svg>
+        {/* Card 2: Active Tables */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between h-[180px]">
+          {/* Decorative Shape */}
+          <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-[#E6E8FA] rounded-full opacity-60 pointer-events-none" />
+          
+          <div className="flex justify-between items-start relative z-10">
+            <div className="w-12 h-12 bg-[#EEF2FF] text-indigo-500 flex items-center justify-center rounded-xl">
+              <Armchair className="w-6 h-6" />
+            </div>
+            <div className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">
+              42/50 Capacity
+            </div>
           </div>
+          
+          <div className="relative z-10 mt-auto">
+            <p className="text-slate-500 text-[11px] font-bold tracking-wider uppercase mb-1">
+              Active Tables
+            </p>
+            <div className="text-4xl font-bold text-slate-900 leading-none mb-2">
+              38
+            </div>
+            <p className="text-slate-500 text-sm">
+              Currently occupied
+            </p>
+          </div>
+        </div>
 
-          <div className="relative z-10">
-            <h3 className="text-white text-lg font-bold mb-1">New Walk-in?</h3>
-            <p className="text-indigo-200 text-sm mb-4">Quickly assign a table.</p>
-            <button className="bg-white text-indigo-700 hover:bg-slate-50 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
-              <Plus className="w-4 h-4" />
-              Assign Table
-            </button>
+        {/* Card 3: Active Menu Items */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between h-[180px]">
+          {/* Decorative Shape */}
+          <div className="absolute -right-10 top-1/4 w-36 h-36 bg-slate-100 rounded-full opacity-80 pointer-events-none" />
+          
+          <div className="flex justify-between items-start relative z-10">
+            <div className="w-12 h-12 bg-slate-200 text-slate-700 flex items-center justify-center rounded-xl">
+              <Utensils className="w-6 h-6" />
+            </div>
+            <div className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              2 Sold Out
+            </div>
+          </div>
+          
+          <div className="relative z-10 mt-auto">
+            <p className="text-slate-500 text-[11px] font-bold tracking-wider uppercase mb-1">
+              Active Menu Items
+            </p>
+            <div className="text-4xl font-bold text-slate-900 leading-none mb-2">
+              86
+            </div>
+            <p className="text-slate-500 text-sm">
+              Across 8 categories
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Recent Activity Section */}
-      {/* <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col overflow-hidden min-h-[300px]">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h2 className="text-[15px] font-bold text-slate-800">
-            Recent Activity
+      {/* Upcoming Reservations Table */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-8">
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-slate-900">
+            Upcoming Reservations
           </h2>
           <Link
-            href={`/${domain}/staff/activity`}
-            className="text-indigo-600 font-semibold text-xs hover:text-indigo-700"
+            href="#"
+            className="text-indigo-600 font-semibold text-sm hover:text-indigo-700 transition-colors"
           >
             View All
           </Link>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-12">
-          <Hourglass className="w-12 h-12 mb-3 text-slate-300" />
-          <p className="text-sm font-medium">Activity feed loading...</p>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-200 text-slate-900 text-[11px] uppercase tracking-wider font-bold">
+                <th className="px-6 py-4">GUEST</th>
+                <th className="px-6 py-4 text-center">TIME</th>
+                <th className="px-6 py-4 text-center">PARTY SIZE</th>
+                <th className="px-6 py-4 text-center">STATUS</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-sm">
+              
+              {/* Row 1 */}
+              <tr className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#E8EEF2] text-slate-600 font-bold flex items-center justify-center text-sm">
+                      JD
+                    </div>
+                    <span className="font-semibold text-slate-900">John Doe</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-center text-slate-600">
+                  19:00
+                </td>
+                <td className="px-6 py-4 text-center text-slate-600">
+                  4 Pax
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-semibold">
+                    Confirmed
+                  </span>
+                </td>
+              </tr>
+
+              {/* Row 2 */}
+              <tr className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#E2E8F0] text-slate-600 font-bold flex items-center justify-center text-sm">
+                      AS
+                    </div>
+                    <span className="font-semibold text-slate-900">Alice Smith</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-center text-slate-600">
+                  19:30
+                </td>
+                <td className="px-6 py-4 text-center text-slate-600">
+                  2 Pax
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <span className="bg-[#D1F4E0] text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold">
+                    Seated
+                  </span>
+                </td>
+              </tr>
+
+              {/* Row 3 */}
+              <tr className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#E6E8FA] text-slate-600 font-bold flex items-center justify-center text-sm">
+                      MJ
+                    </div>
+                    <span className="font-semibold text-slate-900">Michael Johnson</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-center text-slate-600">
+                  20:00
+                </td>
+                <td className="px-6 py-4 text-center text-slate-600">
+                  6 Pax
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <span className="bg-[#EAEBFE] text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold">
+                    Arrived
+                  </span>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
         </div>
-      </div> */}
+      </div>
     </div>
   );
 }
