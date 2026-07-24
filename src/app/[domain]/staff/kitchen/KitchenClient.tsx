@@ -189,11 +189,11 @@ export default function KitchenClient({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50 overflow-hidden">
-      <div className="p-6 shrink-0 bg-slate-50">
+    <div className="flex flex-col w-full h-full bg-slate-50">
+      <div className="sticky top-[73px] z-30 p-6 shrink-0 bg-slate-50/90 backdrop-blur-md shadow-sm border-b border-slate-200">
         <StatCards stats={stats} />
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-4">
           {(["All", "Dine-in", "Takeaway"] as const).map((f) => (
             <button
               key={f}

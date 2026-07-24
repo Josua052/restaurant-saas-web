@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { 
   MenuCategory, 
   MenuItem, 
@@ -59,6 +59,8 @@ export default function OrdersClient({
   
   const searchParams = useSearchParams();
   const router = useRouter();
+  const params = useParams();
+  const domain = params.domain as string;
   
   const isAddOn = searchParams.get("addon") === "true";
   const addOnOrderId = searchParams.get("orderId");
@@ -228,6 +230,9 @@ export default function OrdersClient({
     setCashReceived("");
     setCompletedSession(null);
     setShowSuccessModal(false);
+    
+    // Redirect to kitchen to clear Add On states and show incoming orders
+    router.push(`/${domain}/staff/kitchen`);
   };
 
   // Checkout Submission
