@@ -227,6 +227,7 @@ export default function OrdersClient({
 
     setIsSubmitting(true);
     try {
+      const idempotencyKey = crypto.randomUUID();
       const payload = {
         order_type: orderType,
         customer_name: customerName,
@@ -244,6 +245,7 @@ export default function OrdersClient({
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey
         },
         body: JSON.stringify(payload),
       });
