@@ -229,6 +229,7 @@ export default function OrdersClient({
     try {
       const idempotencyKey = crypto.randomUUID();
       const payload = {
+        idempotency_key: idempotencyKey,
         order_type: orderType,
         customer_name: customerName,
         table_id: isDirectPayment ? undefined : selectedTableId,
@@ -251,7 +252,10 @@ export default function OrdersClient({
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || data.message || "Gagal membuat pesanan");
+      if (!res.ok) {
+        const errorMsg = data.error?.details || data.error?.message || data.message || "Gagal membuat pesanan";
+        throw new Error(errorMsg);
+      }
 
       setCompletedSession({
         receiptNumber: data.receipt_number || data.data?.receipt_number || "N/A",

@@ -1,7 +1,26 @@
-import React from "react";
+import { Metadata } from "next";
 import KitchenClient from "./KitchenClient";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default function KitchenPage() {
+export const metadata: Metadata = {
+  title: "Kitchen Dashboard",
+  description: "Live order fulfillment and preparation tracking",
+};
+
+export default async function KitchenPage({
+  params,
+}: {
+  params: Promise<{ domain: string }>;
+}) {
+  const { domain } = await params;
+  const cookieStore = await cookies();
+  const staffToken = cookieStore.get("staff_access_token")?.value;
+
+  if (!staffToken) {
+    redirect(`/${domain}/login`);
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
@@ -12,7 +31,10 @@ export default function KitchenPage() {
       </div>
       
       <div className="flex-1 overflow-hidden">
-        <KitchenClient />
+        <KitchenClient 
+          token={staffToken}
+          apiUrl={process.env.NEXT_PUBLIC_API_URL || ""}
+        />
       </div>
     </div>
   );

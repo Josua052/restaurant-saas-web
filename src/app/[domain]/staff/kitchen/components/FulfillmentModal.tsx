@@ -7,8 +7,9 @@ interface FulfillmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaveProgress: (orderId: string, servedItemIds: string[]) => void;
-  onMarkReady: (orderId: string) => void;
+  onMarkReady: (orderId: string, servedItemIds: string[]) => void;
   onCompleteOrder: (orderId: string) => void;
+  isMutating?: boolean;
 }
 
 export default function FulfillmentModal({ 
@@ -17,7 +18,8 @@ export default function FulfillmentModal({
   onClose,
   onSaveProgress,
   onMarkReady,
-  onCompleteOrder
+  onCompleteOrder,
+  isMutating = false
 }: FulfillmentModalProps) {
   // Local state to track which items are currently checked (served) in the UI
   const [checkedItems, setCheckedItems] = useState<string[]>([]);
@@ -103,27 +105,29 @@ export default function FulfillmentModal({
         {/* Footer Actions */}
         <div className="p-5 border-t border-slate-100 bg-white shrink-0 flex gap-3 flex-wrap sm:flex-nowrap">
           <button 
+            disabled={isMutating}
             onClick={() => onSaveProgress(order.id, checkedItems)}
-            className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-700 font-bold bg-white hover:bg-slate-50 transition-colors"
+            className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-700 font-bold bg-white hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:bg-slate-100"
           >
-            Save Progress
+            {isMutating ? "Saving..." : "Save Progress"}
           </button>
           
           {order.fulfillment_status === 1 && order.order_type === 'Takeaway' && (
             <button 
-              onClick={() => onMarkReady(order.id)}
-              className="flex-1 py-3 px-4 rounded-xl text-yellow-700 font-bold bg-yellow-100 hover:bg-yellow-200 transition-colors"
+              disabled={isMutating}
+              onClick={() => onMarkReady(order.id, checkedItems)}
+              className="flex-1 py-3 px-4 rounded-xl text-yellow-700 font-bold bg-yellow-100 hover:bg-yellow-200 transition-colors disabled:opacity-50 disabled:bg-slate-200"
             >
-              Mark Ready
+              {isMutating ? "Updating..." : "Mark Ready"}
             </button>
           )}
 
           <button 
-            disabled={!isAllServed}
+            disabled={!isAllServed || isMutating}
             onClick={() => onCompleteOrder(order.id)}
             className="flex-1 py-3 px-4 rounded-xl text-white font-bold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:bg-slate-300 disabled:text-slate-500 transition-colors shadow-sm"
           >
-            Complete Order
+            {isMutating ? "Completing..." : "Complete Order"}
           </button>
         </div>
       </div>

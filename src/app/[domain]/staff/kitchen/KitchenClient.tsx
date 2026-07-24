@@ -1,153 +1,206 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import useSWR from "swr";
+import { toast } from "sonner";
 import StatCards from "./components/StatCards";
 import KanbanColumn from "./components/KanbanColumn";
 import FulfillmentModal from "./components/FulfillmentModal";
-import { KitchenOrder, KitchenStats } from "./types";
+import { KitchenOrder, KitchenStats, ApiOrder, MenuItem, TableItem } from "./types";
 
-// Mockup Data
-const initialOrders: KitchenOrder[] = [
-  {
-    id: "1",
-    receipt_number: "204",
-    order_type: "Dine-in",
-    table_number: "12",
-    fulfillment_status: 1, // Preparing
-    created_at: new Date(Date.now() - 18 * 60000).toISOString(), // 18 mins ago
-    items: [
-      { id: "i1", name: "Steak Frites", quantity: 1, notes: "Med-Rare", ticket_status: 1 },
-      { id: "i2", name: "Caesar Salad", quantity: 1, ticket_status: 4 }, // served
-      { id: "i3", name: "Iced Tea", quantity: 2, ticket_status: 1 }
-    ]
-  },
-  {
-    id: "2",
-    receipt_number: "210",
-    order_type: "Takeaway",
-    customer_name: "Jane Doe",
-    fulfillment_status: 1, // Preparing
-    created_at: new Date(Date.now() - 22 * 60000).toISOString(), // 22 mins ago (Overdue)
-    items: [
-      { id: "i4", name: "Classic Burger", quantity: 2, ticket_status: 1 },
-      { id: "i5", name: "Truffle Fries", quantity: 1, ticket_status: 4 },
-      { id: "i6", name: "Milkshake", quantity: 3, ticket_status: 1 }
-    ]
-  },
-  {
-    id: "3",
-    receipt_number: "201",
-    order_type: "Takeaway",
-    customer_name: "Grab - Order 88A",
-    fulfillment_status: 2, // Ready
-    created_at: new Date(Date.now() - 35 * 60000).toISOString(),
-    items: [
-      { id: "i7", name: "Spaghetti Carbonara", quantity: 1, ticket_status: 4 },
-      { id: "i8", name: "Garlic Bread", quantity: 1, ticket_status: 4 }
-    ]
-  },
-  {
-    id: "4",
-    receipt_number: "198",
-    order_type: "Dine-in",
-    table_number: "4",
-    fulfillment_status: 3, // Completed
-    created_at: new Date(Date.now() - 60 * 60000).toISOString(),
-    items: [
-      { id: "i9", name: "Fish and Chips", quantity: 2, ticket_status: 4 }
-    ]
-  },
-  {
-    id: "5",
-    receipt_number: "195",
-    order_type: "Takeaway",
-    customer_name: "John Smith",
-    fulfillment_status: 3, // Completed
-    created_at: new Date(Date.now() - 80 * 60000).toISOString(),
-    items: [
-      { id: "i10", name: "Chicken Wings", quantity: 1, ticket_status: 4 }
-    ]
+// Setup fetcher
+const fetcher = async ([url, token]: [string, string]) => {
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error?.message || errData.message || "Failed to fetch data");
   }
-];
-
-const mockStats: KitchenStats = {
-  newOrders: 24,
-  preparing: 8,
-  completedToday: 142,
-  cancelledToday: 3
+  const json = await res.json();
+  return json.data;
 };
 
-export default function KitchenClient() {
-  const [orders, setOrders] = useState<KitchenOrder[]>(initialOrders);
+export default function KitchenClient({
+  token,
+  apiUrl,
+}: {
+  token: string;
+  apiUrl: string;
+}) {
+  const apiUrlV2 = apiUrl.replace("/v1", "/v2");
+
   const [filterView, setFilterView] = useState<"All" | "Dine-in" | "Takeaway">("All");
   const [selectedOrder, setSelectedOrder] = useState<KitchenOrder | null>(null);
+  const [isMutating, setIsMutating] = useState(false);
+
+  // 1. Fetch Orders (today)
+  const ordersUrl = `${apiUrlV2}/management/orders?date=today`;
+  const { data: apiOrders = [], mutate: mutateOrders } = useSWR<ApiOrder[]>(
+    [ordersUrl, token],
+    fetcher,
+    { refreshInterval: 10000 } // Poll every 10s
+  );
+
+  // 2. Fetch Menus to map menu_id to name
+  const { data: menus = [] } = useSWR<MenuItem[]>(
+    [`${apiUrl}/management/menus`, token],
+    fetcher
+  );
+
+  // 3. Fetch Tables to map table_id to table_number
+  const { data: tablesData = [] } = useSWR<TableItem[]>(
+    [`${apiUrlV2}/management/tables?limit=100`, token],
+    fetcher
+  );
+
+  // Map API Orders to UI KitchenOrders
+  const uiOrders: KitchenOrder[] = useMemo(() => {
+    return apiOrders.map((apiOrder) => {
+      // Find Table Number
+      let tableNumber = undefined;
+      if (apiOrder.table_id) {
+        const t = tablesData.find(t => t.id === apiOrder.table_id);
+        if (t) tableNumber = t.table_number;
+      }
+
+      // Map Items
+      const mappedItems = (apiOrder.order_items || []).map(item => {
+        const m = menus.find(menu => menu.ID === item.menu_id);
+        return {
+          ...item,
+          name: m ? m.Name : "Unknown Item"
+        };
+      });
+
+      return {
+        ...apiOrder,
+        table_number: tableNumber,
+        items: mappedItems,
+      };
+    });
+  }, [apiOrders, menus, tablesData]);
 
   // Filter logic
-  const filteredOrders = orders.filter(o => 
+  const filteredOrders = uiOrders.filter((o) =>
     filterView === "All" ? true : o.order_type === filterView
   );
 
-  const preparingOrders = filteredOrders.filter(o => o.fulfillment_status === 1);
-  const readyOrders = filteredOrders.filter(o => o.fulfillment_status === 2);
-  const completedOrders = filteredOrders.filter(o => o.fulfillment_status === 3).slice(0, 10); // limit 10
+  const preparingOrders = filteredOrders.filter((o) => o.fulfillment_status === 1);
+  const readyOrders = filteredOrders.filter((o) => o.fulfillment_status === 2);
+  const completedOrders = filteredOrders.filter((o) => o.fulfillment_status === 3).slice(0, 10);
 
-  // Modal Handlers
-  const handleOrderClick = (order: KitchenOrder) => {
-    // Only allow editing for preparing or ready (if needed) orders. For completed, we just view.
-    setSelectedOrder(order);
-  };
+  // Calculate Stats
+  const stats: KitchenStats = useMemo(() => {
+    return {
+      newOrders: uiOrders.length,
+      preparing: preparingOrders.length,
+      completedToday: uiOrders.filter((o) => o.fulfillment_status === 3).length,
+      cancelledToday: 0 // If you add status = 3 (Canceled) in future
+    };
+  }, [uiOrders, preparingOrders.length]);
 
+  // Modals
   const closeModal = () => setSelectedOrder(null);
 
-  const handleSaveProgress = (orderId: string, servedItemIds: string[]) => {
-    // Update local state ticket_status to 4 for checked items, 1 for unchecked
-    setOrders(prev => prev.map(o => {
+  // --- API MUTATION LOGIC ---
+  const updateFulfillment = async (orderId: string, newStatus: number, servedItemIds: string[]) => {
+    if (isMutating) return;
+    setIsMutating(true);
+
+    const payload = {
+      fulfillment_status: newStatus,
+      items_served: servedItemIds,
+    };
+
+    // Optimistic Update
+    const optimisticData = apiOrders.map((o) => {
       if (o.id !== orderId) return o;
       return {
         ...o,
-        items: o.items.map(item => ({
+        fulfillment_status: newStatus,
+        order_items: o.order_items.map((item) => ({
           ...item,
-          ticket_status: servedItemIds.includes(item.id) ? 4 : 1
-        }))
+          ticket_status: servedItemIds.includes(item.id) ? 4 : 1,
+        })),
       };
-    }));
-    closeModal();
+    });
+    
+    // Update local cache immediately without revalidating yet
+    mutateOrders(optimisticData, false);
+
+    try {
+      const res = await fetch(`${apiUrlV2}/management/orders/${orderId}/fulfillment`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || "Failed to update order");
+      }
+      
+      toast.success("Pesanan berhasil diperbarui");
+      closeModal();
+    } catch (err: any) {
+      toast.error(err.message || "Terjadi kesalahan jaringan");
+      // Rollback on failure
+      mutateOrders();
+    } finally {
+      setIsMutating(false);
+      // Revalidate to ensure sync
+      mutateOrders(); 
+    }
+  };
+
+  const handleSaveProgress = (orderId: string, servedItemIds: string[]) => {
+    updateFulfillment(orderId, 1, servedItemIds);
   };
 
   const handleMarkReady = (orderId: string) => {
-    setOrders(prev => prev.map(o => 
-      o.id === orderId ? { ...o, fulfillment_status: 2 } : o
-    ));
-    closeModal();
+    // If order type is takeaway, status goes to 2 (Ready).
+    // The modal passes all currently checked items, plus we might want to ensure everything is checked, 
+    // but the API spec says we just pass what's served.
+    // For Mark Ready, let's just mark everything served if needed, or just pass current checked.
+    // We'll pass all items as served for simplicity, or use selectedOrder's checked items.
+    // Wait, the modal gives us checked items. But since it's a direct action, maybe we should get them from the component.
+    // Actually, FulfillmentModal doesn't pass items to MarkReady in our current code. Let's fix that.
+    // We will update the modal callback in a moment. For now, assume it passes servedItemIds.
   };
 
   const handleCompleteOrder = (orderId: string) => {
-    setOrders(prev => prev.map(o => 
-      o.id === orderId ? { 
-        ...o, 
-        fulfillment_status: 3,
-        // Optional: mark all items as served when completed
-        items: o.items.map(i => ({ ...i, ticket_status: 4 })) 
-      } : o
-    ));
-    closeModal();
+    // Complete order -> status 3, all items served
+    const order = uiOrders.find((o) => o.id === orderId);
+    if (!order) return;
+    const allItemIds = order.items.map((i) => i.id);
+    updateFulfillment(orderId, 3, allItemIds);
+  };
+
+  // Wrapper for mark ready since modal only sends orderId originally
+  const handleMarkReadyWrapper = (orderId: string, servedItemIds: string[]) => {
+    updateFulfillment(orderId, 2, servedItemIds);
   };
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50 overflow-hidden">
-      {/* Top Header & Stats */}
       <div className="p-6 shrink-0 bg-slate-50">
-        <StatCards stats={mockStats} />
+        <StatCards stats={stats} />
         
-        {/* Filter */}
         <div className="flex gap-2">
-          {(["All", "Dine-in", "Takeaway"] as const).map(f => (
+          {(["All", "Dine-in", "Takeaway"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilterView(f)}
               className={`px-5 py-2 rounded-full font-bold text-sm transition-colors border ${
-                filterView === f 
-                  ? "bg-indigo-600 border-indigo-600 text-white shadow-sm" 
+                filterView === f
+                  ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
                   : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
@@ -157,45 +210,42 @@ export default function KitchenClient() {
         </div>
       </div>
 
-      {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto p-6 pt-0">
         <div className="flex h-full gap-6 min-w-max">
-          <KanbanColumn 
-            title="Preparing" 
+          <KanbanColumn
+            title="Preparing"
             count={preparingOrders.length}
             orders={preparingOrders}
             statusColor="bg-orange-500"
-            onOrderClick={handleOrderClick}
+            onOrderClick={setSelectedOrder}
           />
-          
-          <KanbanColumn 
-            title="Ready" 
+          <KanbanColumn
+            title="Ready"
             count={readyOrders.length}
             orders={readyOrders}
             statusColor="bg-emerald-500"
-            onOrderClick={handleOrderClick}
+            onOrderClick={setSelectedOrder}
           />
-
-          <KanbanColumn 
-            title="Completed (Last 10)" 
+          <KanbanColumn
+            title="Completed (Last 10)"
             count={completedOrders.length}
             orders={completedOrders}
             statusColor="bg-slate-300"
-            onOrderClick={handleOrderClick}
+            onOrderClick={setSelectedOrder}
             isCompleted={true}
           />
         </div>
       </div>
 
-      {/* Detail Modal */}
       {selectedOrder && (
-        <FulfillmentModal 
+        <FulfillmentModal
           order={selectedOrder}
           isOpen={!!selectedOrder}
           onClose={closeModal}
           onSaveProgress={handleSaveProgress}
-          onMarkReady={handleMarkReady}
+          onMarkReady={(id, servedIds) => handleMarkReadyWrapper(id, servedIds)}
           onCompleteOrder={handleCompleteOrder}
+          isMutating={isMutating}
         />
       )}
     </div>
