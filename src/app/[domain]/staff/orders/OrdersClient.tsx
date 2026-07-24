@@ -326,11 +326,16 @@ export default function OrdersClient({
                 return (
                   <div
                     key={menu.ID}
-                    onClick={() => addToCart(menu)}
+                    onClick={() => {
+                      if (isInCart) return;
+                      addToCart(menu);
+                    }}
                     className={`group relative bg-white border rounded-2xl overflow-hidden transition-all ${
-                      menu.IsAvailable !== false
-                        ? "border-slate-200 hover:border-indigo-300 hover:shadow-md cursor-pointer"
-                        : "border-slate-100 opacity-60 cursor-not-allowed"
+                      menu.IsAvailable === false
+                        ? "border-slate-100 opacity-60 cursor-not-allowed"
+                        : isInCart
+                        ? "border-indigo-300 ring-2 ring-indigo-500/20 cursor-default"
+                        : "border-slate-200 hover:border-indigo-300 hover:shadow-md cursor-pointer"
                     }`}
                   >
                     {isInCart && (
