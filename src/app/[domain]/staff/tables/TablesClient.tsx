@@ -20,7 +20,7 @@ interface TableData {
   capacity: number;
   status: number; // 1: Available, 2: Occupied, 3: Reserved
   section?: TableSection;
-  active_reservation?: any;
+  active_res?: { guest_name: string; time: string };
 }
 
 // Grouped data structure for UI
@@ -479,22 +479,41 @@ export default function TablesClient({ initialToken }: { initialToken: string })
                 </div>
               )}
 
-              {/* New Session Button */}
+              {/* Tindakan (Actions) */}
               <div>
                 <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Tindakan</h4>
                 <div className="flex gap-3">
-                  <button 
-                    onClick={() => {
-                      if (sessionData?.current_session) {
+                  {/* ADD ON (if session exists) */}
+                  {sessionData?.current_session && (
+                    <button 
+                      onClick={() => {
                         router.push(`/${domain}/staff/orders?addon=true&orderId=${sessionData.current_session.order_id}&tableId=${selectedTable.id}&customerName=${encodeURIComponent(sessionData.current_session.customer_name || 'Walk-in Guest')}`);
-                      }
-                    }}
-                    disabled={isUpdating || !sessionData?.current_session}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-indigo-200 text-indigo-600 text-sm font-bold hover:bg-indigo-50 transition-colors disabled:opacity-50"
-                  >
-                    <Plus className="w-4 h-4" /> ADD ON
-                  </button>
+                      }}
+                      disabled={isUpdating}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-indigo-200 text-indigo-600 text-sm font-bold hover:bg-indigo-50 transition-colors disabled:opacity-50"
+                    >
+                      <Plus className="w-4 h-4" /> ADD ON
+                    </button>
+                  )}
 
+                  {/* BUAT PESANAN (if Occupied but no session exists yet) */}
+                  {selectedTable.status === 2 && !sessionData?.current_session && (
+                    <button 
+                      onClick={() => {
+                        let url = `/${domain}/staff/orders?tableId=${selectedTable.id}`;
+                        if (selectedTable.active_res?.guest_name) {
+                          url += `&customerName=${encodeURIComponent(selectedTable.active_res.guest_name)}`;
+                        }
+                        router.push(url);
+                      }}
+                      disabled={isUpdating}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+                    >
+                      <Utensils className="w-4 h-4" /> Mulai Pesan
+                    </button>
+                  )}
+
+                  {/* PEMBAYARAN (if Occupied and session exists) */}
                   {selectedTable.status === 2 && sessionData?.current_session && (
                     <button 
                       onClick={() => setPaymentOrderId(sessionData.current_session.order_id)}

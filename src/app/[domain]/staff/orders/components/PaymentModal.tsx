@@ -15,6 +15,7 @@ interface PaymentModalProps {
   isSubmitting: boolean;
   handleCheckout: () => void;
   formatCurrency: (val: number) => string;
+  isPreselectedTable?: boolean;
 }
 
 export default function PaymentModal({
@@ -32,6 +33,7 @@ export default function PaymentModal({
   isSubmitting,
   handleCheckout,
   formatCurrency,
+  isPreselectedTable = false,
 }: PaymentModalProps) {
   if (!isOpen) return null;
 
@@ -53,18 +55,29 @@ export default function PaymentModal({
           <div className="flex-1 p-6 border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/50">
             <h4 className="font-semibold text-slate-800 mb-5">Identitas Pesanan</h4>
             
-            <div className="space-y-4 mb-8">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nama Pelanggan</label>
-                <input 
-                  type="text" 
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Contoh: Budi (Opsional)"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none"
-                />
+            {!isPreselectedTable ? (
+              <div className="space-y-4 mb-8">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nama Pelanggan</label>
+                  <input 
+                    type="text" 
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Contoh: Budi (Opsional)"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none"
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4 mb-8">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nama Pelanggan (Dari Reservasi)</label>
+                  <p className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-600 font-medium">
+                    {customerName || "Walk-in Guest"}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
               <div className="flex justify-between items-center mb-2 text-sm">

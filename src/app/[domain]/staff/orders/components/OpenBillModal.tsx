@@ -15,6 +15,7 @@ interface OpenBillModalProps {
   availableTables: TableResponseDTO[];
   isSubmitting: boolean;
   handleCheckout: () => void;
+  isPreselectedTable?: boolean;
 }
 
 export default function OpenBillModal({
@@ -30,6 +31,7 @@ export default function OpenBillModal({
   availableTables,
   isSubmitting,
   handleCheckout,
+  isPreselectedTable = false,
 }: OpenBillModalProps) {
   if (!isOpen) return null;
 
@@ -59,6 +61,7 @@ export default function OpenBillModal({
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Area</label>
             <Select 
               value={selectedAreaId || null}
+              disabled={isPreselectedTable}
               onChange={(val) => {
                 setSelectedAreaId(val || "");
                 setSelectedTableId(""); // reset table when area changes
@@ -73,6 +76,7 @@ export default function OpenBillModal({
                 input: {
                   borderColor: '#e2e8f0',
                   borderRadius: '0.75rem',
+                  backgroundColor: isPreselectedTable ? '#f1f5f9' : undefined
                 }
               }}
             />
@@ -82,8 +86,20 @@ export default function OpenBillModal({
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Pilih Meja *</label>
             <Select 
               value={selectedTableId || null}
-              onChange={(val) => setSelectedTableId(val || "")}
-              data={availableTables
+              disabled={isPreselectedTable}
+              onChange={(val) => {
+                const newId = val || "";
+                setSelectedTableId(newId);
+                if (newId) {
+                  const table = availableTables.find((t) => t.id === newId);
+                  if (table?.active_res?.guest_name) {
+                    setCustomerName(table.active_res.guest_name);
+                  }
+                }
+              }}
+              data={isPreselectedTable 
+                ? availableTables.filter(t => t.id === selectedTableId).map(t => ({ value: t.id, label: `Meja ${t.table_number}` }))
+                : availableTables
                 .filter((t) => t.status !== 2)
                 .map((t) => ({
                   value: t.id,
@@ -95,6 +111,7 @@ export default function OpenBillModal({
                 input: {
                   borderColor: '#e2e8f0',
                   borderRadius: '0.75rem',
+                  backgroundColor: isPreselectedTable ? '#f1f5f9' : undefined
                 }
               }}
             />

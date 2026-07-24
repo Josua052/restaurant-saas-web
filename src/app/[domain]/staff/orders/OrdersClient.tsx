@@ -85,12 +85,8 @@ export default function OrdersClient({
   const [selectedTableId, setSelectedTableId] = useState("");
 
   // Initialize add on data
-  useEffect(() => {
-    if (isAddOn && addOnTableId && addOnCustomerName) {
-      setCustomerName(addOnCustomerName);
-      setSelectedTableId(addOnTableId);
-    }
-  }, [isAddOn, addOnTableId, addOnCustomerName]);
+  const [isPreselectedTable, setIsPreselectedTable] = useState(false);
+
   const [paymentMethod, setPaymentMethod] = useState("Tunai");
   const [cashReceived, setCashReceived] = useState<string>("");
 
@@ -106,6 +102,24 @@ export default function OrdersClient({
   const { data: tablesData = [] } = useSWR<TableResponseDTO[]>(
     [`${apiUrlV2}/management/tables?limit=100`, token], fetcher
   );
+
+  useEffect(() => {
+    if (addOnTableId) {
+      setSelectedTableId(addOnTableId);
+      setIsPreselectedTable(true);
+      
+      // Auto-set area if table is found in data
+      if (tablesData.length > 0) {
+        const table = tablesData.find(t => t.id === addOnTableId);
+        if (table && table.section_id) {
+          setSelectedAreaId(table.section_id);
+        }
+      }
+    }
+    if (addOnCustomerName) {
+      setCustomerName(addOnCustomerName);
+    }
+  }, [addOnTableId, addOnCustomerName, tablesData]);
 
   // Filter Menus
   const filteredMenus = useMemo(() => {
@@ -237,7 +251,9 @@ export default function OrdersClient({
 
   // Checkout Submission
   const handleCheckout = async (isDirectPayment: boolean) => {
-    if (!isDirectPayment && !customerName.trim()) {
+    const finalCustomerName = customerName.trim() || (isPreselectedTable ? "Guest (Table)" : "");
+
+    if (!isDirectPayment && !finalCustomerName) {
       toast.error("Nama pelanggan wajib diisi.");
       return;
     }
@@ -253,7 +269,7 @@ export default function OrdersClient({
       const payload = {
         idempotency_key: idempotencyKey,
         order_type: orderType,
-        customer_name: customerName,
+        customer_name: finalCustomerName,
         table_id: isDirectPayment ? undefined : selectedTableId,
         payment_method: isDirectPayment ? paymentMethod : undefined,
         items: cart.map(item => ({
@@ -586,11 +602,17 @@ export default function OrdersClient({
               <>
                 {orderType === "Dine-in" && (
                   <button 
-                    onClick={() => setShowOpenBillModal(true)}
-                    disabled={cart.length === 0}
-                    className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => {
+                      if (isPreselectedTable) {
+                        handleCheckout(false);
+                      } else {
+                        setShowOpenBillModal(true);
+                      }
+                    }}
+                    disabled={cart.length === 0 || isSubmitting}
+                    className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Open Bill
+                    {isSubmitting && isPreselectedTable ? "Memproses..." : "Open Bill"}
                   </button>
                 )}
                 <button 
@@ -627,6 +649,7 @@ export default function OrdersClient({
         availableTables={availableTables}
         isSubmitting={isSubmitting}
         handleCheckout={() => handleCheckout(false)}
+        isPreselectedTable={isPreselectedTable}
       />
 
       <PaymentModal
@@ -644,6 +667,7 @@ export default function OrdersClient({
         isSubmitting={isSubmitting}
         handleCheckout={() => handleCheckout(true)}
         formatCurrency={formatCurrency}
+        isPreselectedTable={isPreselectedTable}
       />
 
       <SuccessModal
