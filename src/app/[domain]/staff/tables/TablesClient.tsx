@@ -5,6 +5,7 @@ import { Snowflake, Wind, Users, X, Plus, Calendar, Utensils, AlertCircle } from
 import useSWR from "swr";
 import { toast } from "sonner";
 import { Select } from "@mantine/core";
+import TablePaymentModal from "./components/TablePaymentModal";
 
 // --- API Types ---
 interface TableSection {
@@ -37,6 +38,10 @@ export default function TablesClient({ initialToken }: { initialToken: string })
   const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
   const [selectedArea, setSelectedArea] = useState<AreaData | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState(false);
+  const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
 
   // API Config
   const token = initialToken;
@@ -102,14 +107,68 @@ export default function TablesClient({ initialToken }: { initialToken: string })
     return Array.from(map.values()).filter(a => a.tables.length > 0);
   }, [sections, rawTables]);
 
-  const handleOpenModal = (table: TableData, area: AreaData) => {
+  const handleOpenModal = async (table: TableData, area: AreaData) => {
     setSelectedTable(table);
     setSelectedArea(area);
+    
+    if (table.status === 2) {
+      setIsSessionLoading(true);
+      try {
+        const res = await fetch(`${API_URL_V2}/management/tables/${table.id}/session`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSessionData(data.data); 
+        }
+      } catch (e) {
+        toast.error("Gagal memuat sesi meja");
+      } finally {
+        setIsSessionLoading(false);
+      }
+    } else {
+      setSessionData(null);
+    }
   };
 
   const handleCloseModal = () => {
     setSelectedTable(null);
     setSelectedArea(null);
+    setSessionData(null);
+  };
+
+  const handleProcessPayment = async (method: string, cashReceived: number) => {
+    if (!paymentOrderId) return;
+    setIsUpdating(true);
+    try {
+      const payload = {
+        payment_method: method,
+        cash_received: cashReceived
+      };
+
+      const res = await fetch(`${API_URL_V2}/management/orders/${paymentOrderId}/payment`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error?.message || errData.message || "Gagal memproses pembayaran");
+      }
+
+      toast.success("Pembayaran berhasil diselesaikan");
+      setPaymentOrderId(null);
+      handleCloseModal();
+      mutateTables(); // Refresh tables board
+    } catch (error: any) {
+      toast.error(error.message || "Gagal memproses pembayaran");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   // Status mapping
@@ -175,6 +234,7 @@ export default function TablesClient({ initialToken }: { initialToken: string })
   }
 
   return (
+    <>
     <div className="w-full min-h-screen bg-slate-50 p-6 md:p-8 font-sans">
       
       {/* Top Filter Bar */}
@@ -344,18 +404,24 @@ export default function TablesClient({ initialToken }: { initialToken: string })
               {/* Current Session */}
               <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
                 <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4">Current Session</h4>
-                <div className="grid grid-cols-2 gap-y-4">
-                  <div>
-                    <p className="text-xs text-slate-500 mb-0.5">Customer Name</p>
-                    <p className="text-sm font-semibold text-slate-900">Walk-in Guest</p>
+                {isSessionLoading ? (
+                  <div className="text-sm text-slate-500 animate-pulse">Memuat data sesi...</div>
+                ) : sessionData?.current_session ? (
+                  <div className="grid grid-cols-2 gap-y-4">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-0.5">Nama Pelanggan</p>
+                      <p className="text-sm font-semibold text-slate-900">{sessionData.current_session.customer_name || 'Walk-in Guest'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 mb-0.5">Waktu Kedatangan</p>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {new Date(sessionData.current_session.seated_since).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-0.5">Seated Since</p>
-                    <p className="text-sm font-semibold text-slate-900">
-                      Walk-in
-                    </p>
-                  </div>
-                </div>
+                ) : (
+                  <div className="text-sm text-slate-500 italic">Tidak ada sesi aktif.</div>
+                )}
               </div>
 
               {/* Change Status Segment */}
@@ -406,13 +472,25 @@ export default function TablesClient({ initialToken }: { initialToken: string })
 
               {/* New Session Button */}
               <div>
-                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">New Session</h4>
-                <button 
-                  disabled={isUpdating}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-indigo-200 text-indigo-600 text-sm font-bold hover:bg-indigo-50 transition-colors disabled:opacity-50"
-                >
-                  <Plus className="w-4 h-4" /> ADD ON
-                </button>
+                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Tindakan</h4>
+                <div className="flex gap-3">
+                  <button 
+                    disabled={isUpdating || !sessionData?.current_session}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-indigo-200 text-indigo-600 text-sm font-bold hover:bg-indigo-50 transition-colors disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" /> ADD ON
+                  </button>
+
+                  {selectedTable.status === 2 && sessionData?.current_session && (
+                    <button 
+                      onClick={() => setPaymentOrderId(sessionData.current_session.order_id)}
+                      disabled={isUpdating}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm"
+                    >
+                      Pembayaran
+                    </button>
+                  )}
+                </div>
               </div>
 
             </div>
@@ -433,5 +511,17 @@ export default function TablesClient({ initialToken }: { initialToken: string })
       )}
 
     </div>
+    
+    {paymentOrderId && (
+      <TablePaymentModal 
+        isOpen={!!paymentOrderId}
+        onClose={() => setPaymentOrderId(null)}
+        orderId={paymentOrderId}
+        totalAmount={sessionData?.current_session?.current_bill || 0}
+        isSubmitting={isUpdating}
+        handleProcessPayment={handleProcessPayment}
+      />
+    )}
+    </>
   );
 }

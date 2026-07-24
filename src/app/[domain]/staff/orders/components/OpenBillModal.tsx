@@ -83,11 +83,12 @@ export default function OpenBillModal({
             <Select 
               value={selectedTableId || null}
               onChange={(val) => setSelectedTableId(val || "")}
-              data={availableTables.map((t) => ({
-                value: t.id,
-                label: `Meja ${t.table_number} ${t.status === 2 ? '(Terisi)' : ''}`,
-                disabled: t.status === 2
-              }))}
+              data={availableTables
+                .filter((t) => t.status !== 2)
+                .map((t) => ({
+                  value: t.id,
+                  label: `Meja ${t.table_number}`,
+                }))}
               placeholder="-- Pilih Meja --"
               size="md"
               styles={{

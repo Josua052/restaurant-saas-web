@@ -95,6 +95,20 @@ export async function POST(request: Request) {
       maxAge: 60 * 15, // 15 minutes (typically)
     });
 
+    // Owner & Manager can access Staff pages (POS, Tables, Kitchen).
+    // We also write staff_access_token so those pages always get the correct branchID token.
+    if (userRole === "owner" || userRole === "manager") {
+      cookieStore.set({
+        name: "staff_access_token",
+        value: accessToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 60 * 15,
+      });
+    }
+
     // Set Refresh Token (if provided)
     if (refreshToken) {
       let refreshCookieName = "refresh_token";
@@ -115,6 +129,19 @@ export async function POST(request: Request) {
         path: "/",
         maxAge: 60 * 60 * 24 * 7, // 7 days
       });
+
+      // Also set staff_refresh_token for Owner/Manager so refresh works on Staff pages
+      if (userRole === "owner" || userRole === "manager") {
+        cookieStore.set({
+          name: "staff_refresh_token",
+          value: refreshToken,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7,
+        });
+      }
     }
 
     return response;
