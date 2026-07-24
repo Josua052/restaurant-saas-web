@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Snowflake, Wind, Users, X, Plus, Calendar, Utensils, AlertCircle } from "lucide-react";
 import useSWR from "swr";
+import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Select } from "@mantine/core";
 import TablePaymentModal from "./components/TablePaymentModal";
@@ -33,6 +34,9 @@ interface AreaData {
 export default function TablesClient({ initialToken }: { initialToken: string }) {
   const [activeArea, setActiveArea] = useState<string>("All Areas");
   const [activeStatus, setActiveStatus] = useState<string>("All Status");
+  const router = useRouter();
+  const params = useParams();
+  const domain = params.domain as string;
   
   // Modal State
   const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
@@ -475,6 +479,11 @@ export default function TablesClient({ initialToken }: { initialToken: string })
                 <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Tindakan</h4>
                 <div className="flex gap-3">
                   <button 
+                    onClick={() => {
+                      if (sessionData?.current_session) {
+                        router.push(`/${domain}/staff/orders?addon=true&orderId=${sessionData.current_session.order_id}&tableId=${selectedTable.id}&customerName=${encodeURIComponent(sessionData.current_session.customer_name || 'Walk-in Guest')}`);
+                      }
+                    }}
                     disabled={isUpdating || !sessionData?.current_session}
                     className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-indigo-200 text-indigo-600 text-sm font-bold hover:bg-indigo-50 transition-colors disabled:opacity-50"
                   >

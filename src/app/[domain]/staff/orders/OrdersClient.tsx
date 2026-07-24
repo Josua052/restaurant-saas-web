@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 import {
@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
   MenuCategory, 
   MenuItem, 
@@ -56,6 +57,14 @@ export default function OrdersClient({
   const [orderType, setOrderType] = useState<"Dine-in" | "Takeaway">("Dine-in");
   const [cart, setCart] = useState<CartItem[]>([]);
   
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  const isAddOn = searchParams.get("addon") === "true";
+  const addOnOrderId = searchParams.get("orderId");
+  const addOnTableId = searchParams.get("tableId");
+  const addOnCustomerName = searchParams.get("customerName");
+  
   // Note Modal State
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [activeNoteItemId, setActiveNoteItemId] = useState<string | null>(null);
@@ -72,6 +81,14 @@ export default function OrdersClient({
   const [customerName, setCustomerName] = useState("");
   const [selectedAreaId, setSelectedAreaId] = useState("");
   const [selectedTableId, setSelectedTableId] = useState("");
+
+  // Initialize add on data
+  useEffect(() => {
+    if (isAddOn && addOnTableId && addOnCustomerName) {
+      setCustomerName(addOnCustomerName);
+      setSelectedTableId(addOnTableId);
+    }
+  }, [isAddOn, addOnTableId, addOnCustomerName]);
   const [paymentMethod, setPaymentMethod] = useState("Tunai");
   const [cashReceived, setCashReceived] = useState<string>("");
 
@@ -237,23 +254,44 @@ export default function OrdersClient({
         items: cart.map(item => ({
           menu_id: item.menu_id,
           quantity: item.quantity,
-          notes: item.note
+          notes: item.note || ""
         }))
       };
 
-      const res = await fetch(`${apiUrlV2}/management/orders`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "Idempotency-Key": idempotencyKey
-        },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        isAddOn 
+          ? `${apiUrlV2}/management/orders/${addOnOrderId}/items`
+          : `${apiUrlV2}/management/orders`, 
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey
+          },
+          body: JSON.stringify(isAddOn ? {
+            idempotency_key: idempotencyKey,
+            items: payload.items,
+            subtotal,
+            tax,
+            total: grandTotal
+          } : payload),
+        }
+      );
 
       const data = await res.json();
       if (!res.ok) {
-        const errorMsg = data.error?.details || data.error?.message || data.message || "Gagal membuat pesanan";
+        console.error("API Error Response:", data);
+        let errorMsg = data.message || "Gagal membuat pesanan";
+        if (data.error?.details) {
+          if (Array.isArray(data.error.details)) {
+            errorMsg = data.error.details.join(", ");
+          } else if (typeof data.error.details === "string") {
+            errorMsg = data.error.details;
+          } else {
+            errorMsg = JSON.stringify(data.error.details);
+          }
+        }
         throw new Error(errorMsg);
       }
 
@@ -271,7 +309,7 @@ export default function OrdersClient({
         createdAt: new Date().toISOString(),
       });
 
-      toast.success(isDirectPayment ? "Pesanan berhasil dibayar!" : "Open Bill berhasil dibuat!");
+      toast.success(isAddOn ? "Tambahan pesanan berhasil!" : isDirectPayment ? "Pesanan berhasil dibayar!" : "Open Bill berhasil dibuat!");
       setShowOpenBillModal(false);
       setShowPaymentModal(false);
       setShowSuccessModal(true);
@@ -531,22 +569,34 @@ export default function OrdersClient({
           </div>
 
           <div className="flex flex-col gap-3">
-            {orderType === "Dine-in" && (
+            {isAddOn ? (
               <button 
-                onClick={() => setShowOpenBillModal(true)}
-                disabled={cart.length === 0}
-                className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => handleCheckout(false)}
+                disabled={cart.length === 0 || isSubmitting}
+                className="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Open Bill
+                {isSubmitting ? "Memproses..." : "Kirim Tambahan (Add On)"}
               </button>
+            ) : (
+              <>
+                {orderType === "Dine-in" && (
+                  <button 
+                    onClick={() => setShowOpenBillModal(true)}
+                    disabled={cart.length === 0}
+                    className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Open Bill
+                  </button>
+                )}
+                <button 
+                  onClick={() => setShowPaymentModal(true)}
+                  disabled={cart.length === 0}
+                  className="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Bayar Langsung
+                </button>
+              </>
             )}
-            <button 
-              onClick={() => setShowPaymentModal(true)}
-              disabled={cart.length === 0}
-              className="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Bayar Langsung
-            </button>
           </div>
         </div>
       </div>
