@@ -62,7 +62,25 @@ export default function CreateReservationModal({
   const selectedTableObj = tables.find((t: any) => t.id === formData.table_id);
   const isTableTooSmall = selectedTableObj && selectedTableObj.capacity < formData.guest_count;
 
+  // Fetch available slots for the selected date
+  const { data: slotsRes } = useSWR(
+    isOpen && formData.reservation_date ? [`${apiUrlV2}/management/reservations/slots?date=${formData.reservation_date}`, token] : null,
+    ([url, t]) => fetcher(url, t)
+  );
+  
+  const availableSlots: string[] = slotsRes?.data || [];
+
+  // Auto-select first available slot if current selected time is invalid
+  useEffect(() => {
+    if (availableSlots.length > 0 && !availableSlots.includes(formData.reservation_time)) {
+      setFormData(prev => ({ ...prev, reservation_time: availableSlots[0] }));
+    }
+  }, [availableSlots, formData.reservation_time]);
+
   if (!isOpen) return null;
+
+  // Generate today string for min date
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,6 +214,7 @@ export default function CreateReservationModal({
                   <input 
                     type="date" 
                     required
+                    min={todayStr}
                     value={formData.reservation_date}
                     onChange={(e) => setFormData({...formData, reservation_date: e.target.value})}
                     className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700"
@@ -212,13 +231,21 @@ export default function CreateReservationModal({
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <Clock className="w-4 h-4" />
                   </div>
-                  <input 
-                    type="time" 
+                  <select 
                     required
                     value={formData.reservation_time}
                     onChange={(e) => setFormData({...formData, reservation_time: e.target.value})}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700"
-                  />
+                    disabled={availableSlots.length === 0}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700 appearance-none disabled:bg-slate-50 disabled:text-slate-400"
+                  >
+                    {availableSlots.length > 0 ? (
+                      availableSlots.map(slot => (
+                        <option key={slot} value={slot}>{slot}</option>
+                      ))
+                    ) : (
+                      <option value="">Tidak ada slot tersedia</option>
+                    )}
+                  </select>
                 </div>
               </div>
             </div>
