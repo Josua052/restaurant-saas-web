@@ -193,7 +193,7 @@ export default function EmployeesClient({ token }: EmployeesClientProps) {
   };
 
   return (
-    <div suppressHydrationWarning className="w-full space-y-6 relative">
+    <div suppressHydrationWarning className="w-full space-y-6 relative p-6 md:p-8">
       {/* Header Area */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

@@ -183,9 +183,9 @@ export default function ReservationsClient({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden">
+    <div className="w-full flex-1 flex flex-col h-[calc(100vh-64px)] ">
       {/* Sticky Header Area */}
-      <div className="sticky top-0 z-30 bg-slate-50 border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+      <div className="sticky top-0 z-30 w-full bg-white bg-slate-50 border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">
             Reservations
@@ -359,7 +359,9 @@ export default function ReservationsClient({
                                 {/* 1 -> 2: Mark Confirmed */}
                                 {res.status === 1 && (
                                   <button
-                                    onClick={() => handleUpdateStatus(res.id, 2)}
+                                    onClick={() =>
+                                      handleUpdateStatus(res.id, 2)
+                                    }
                                     className="w-full px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-emerald-600 flex items-center gap-2"
                                   >
                                     <CheckCircle2 className="w-4 h-4" />
@@ -385,7 +387,9 @@ export default function ReservationsClient({
                                 {/* 3 -> 4: Complete Reservation */}
                                 {res.status === 3 && (
                                   <button
-                                    onClick={() => handleUpdateStatus(res.id, 4)}
+                                    onClick={() =>
+                                      handleUpdateStatus(res.id, 4)
+                                    }
                                     className="w-full px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2"
                                   >
                                     <CheckCircle2 className="w-4 h-4" />

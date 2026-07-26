@@ -100,7 +100,7 @@ export default async function OwnerLayout({
           </header>
 
           {/* Page Content */}
-          <div className="flex-1 p-8 overflow-y-auto" suppressHydrationWarning>
+          <div className="flex-1 overflow-y-auto" suppressHydrationWarning>
             {children}
           </div>
         </main>

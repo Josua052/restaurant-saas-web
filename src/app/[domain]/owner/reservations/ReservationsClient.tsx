@@ -133,7 +133,7 @@ export default function ReservationsClient({
   };
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-8 p-6 md:p-8">
       {/* Page Header */}
       <div>
         <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">
