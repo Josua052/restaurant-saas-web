@@ -629,7 +629,7 @@ export default function OrdersClient({
           </div>
           <div className="flex justify-between items-center mb-4 text-sm">
             <div className="flex items-center gap-1 text-slate-500 font-medium">
-              Pajak (PB1{taxRatePercent}%)
+              Pajak (PB{taxRatePercent}%)
             </div>
             <span className="text-slate-800 font-semibold">
               {formatCurrency(tax)}

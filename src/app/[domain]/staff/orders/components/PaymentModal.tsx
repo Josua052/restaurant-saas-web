@@ -99,7 +99,7 @@ export default function PaymentModal({
               </div>
               <div className="flex justify-between items-center mb-4 text-sm">
                 <span className="text-slate-500 font-medium">
-                  Pajak (PB1 {taxRatePercent}%)
+                  Pajak (PB {taxRatePercent}%)
                 </span>
                 <span className="text-slate-800 font-medium">
                   {formatCurrency(tax)}
