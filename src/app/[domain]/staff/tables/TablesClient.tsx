@@ -73,6 +73,12 @@ export default function TablesClient({ initialToken }: { initialToken: string })
     fetcher
   );
 
+  const { data: settingsRes } = useSWR(
+    token ? `${API_URL}/management/tenant/tax-rate` : null,
+    fetcher
+  );
+  const taxRatePercent = settingsRes?.data?.tax_rate || 0;
+
   const sections: TableSection[] = sectionsRes?.data || [];
   const rawTables: TableData[] = tablesRes?.data || [];
   const isLoading = !sectionsRes && !sectionsErr;
@@ -551,6 +557,7 @@ export default function TablesClient({ initialToken }: { initialToken: string })
         onClose={() => setPaymentOrderId(null)}
         orderId={paymentOrderId}
         totalAmount={sessionData?.current_session?.current_bill || 0}
+        taxRate={taxRatePercent}
         isSubmitting={isUpdating}
         handleProcessPayment={handleProcessPayment}
       />

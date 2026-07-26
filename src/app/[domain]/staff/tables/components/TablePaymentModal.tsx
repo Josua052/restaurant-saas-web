@@ -6,6 +6,7 @@ interface TablePaymentModalProps {
   onClose: () => void;
   orderId: string;
   totalAmount: number;
+  taxRate: number;
   isSubmitting: boolean;
   handleProcessPayment: (paymentMethod: string, cashReceived: number) => void;
 }
@@ -52,6 +53,7 @@ export default function TablePaymentModal({
   onClose,
   orderId,
   totalAmount,
+  taxRate,
   isSubmitting,
   handleProcessPayment,
 }: TablePaymentModalProps) {
@@ -60,21 +62,27 @@ export default function TablePaymentModal({
 
   if (!isOpen) return null;
 
-  const cashVal = parseInt(cashReceived.replace(/\D/g, "")) || 0;
-  const change = Math.max(0, cashVal - totalAmount);
-  const isCashInsufficient = paymentMethod === "Tunai" && cashVal > 0 && cashVal < totalAmount;
+  // The totalAmount prop passed here is already the grand total (CurrentBill).
+  // We need to calculate backwards to show the subtotal and tax breakdown.
+  const grandTotal = totalAmount;
+  const subtotal = grandTotal / (1 + taxRate / 100);
+  const taxAmount = grandTotal - subtotal;
 
-  const quickAmounts = useMemo(() => generateQuickAmounts(totalAmount), [totalAmount]);
+  const cashVal = parseInt(cashReceived.replace(/\D/g, "")) || 0;
+  const change = Math.max(0, cashVal - grandTotal);
+  const isCashInsufficient = paymentMethod === "Tunai" && cashVal > 0 && cashVal < grandTotal;
+
+  const quickAmounts = useMemo(() => generateQuickAmounts(grandTotal), [grandTotal]);
 
   const handleCashInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, "");
     setCashReceived(val);
   };
 
-  const setExactAmount = () => setCashReceived(totalAmount.toString());
+  const setExactAmount = () => setCashReceived(grandTotal.toString());
 
   const onConfirm = () => {
-    if (paymentMethod === "Tunai" && cashVal < totalAmount) {
+    if (paymentMethod === "Tunai" && cashVal < grandTotal) {
       alert("Uang yang diterima kurang dari total tagihan.");
       return;
     }
@@ -104,6 +112,16 @@ export default function TablePaymentModal({
         </div>
 
         {/* Total Bill — Prominent Display */}
+        <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex flex-col gap-2 shrink-0">
+          <div className="flex justify-between text-sm text-slate-500 font-medium">
+            <span>Subtotal</span>
+            <span>{formatCurrency(subtotal)}</span>
+          </div>
+          <div className="flex justify-between text-sm text-slate-500 font-medium">
+            <span>Pajak ({taxRate}%)</span>
+            <span>{formatCurrency(taxAmount)}</span>
+          </div>
+        </div>
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-4 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -111,7 +129,7 @@ export default function TablePaymentModal({
               <span className="text-indigo-200 text-sm font-medium">TOTAL TAGIHAN</span>
             </div>
             <span className="text-white text-2xl font-bold tracking-tight">
-              {formatCurrency(totalAmount)}
+              {formatCurrency(grandTotal)}
             </span>
           </div>
         </div>
