@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Image as ImageIcon,
 } from "lucide-react";
+import MenuAvailabilityToggle from "./components/MenuAvailabilityToggle";
 
 export default async function StaffMenuPage({
   params,
@@ -185,22 +186,13 @@ export default async function StaffMenuPage({
                   </div>
                 )}
 
-                {/* Status Badge */}
-                <div
-                  className={`absolute top-3 right-3 px-2.5 py-1 rounded flex items-center gap-1.5 backdrop-blur-md shadow-sm text-[10px] font-bold tracking-wider uppercase ${
-                    item.IsAvailable !== false
-                      ? "bg-white/90 text-emerald-700"
-                      : "bg-white/90 text-rose-700"
-                  }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      item.IsAvailable !== false
-                        ? "bg-emerald-500"
-                        : "bg-rose-500"
-                    }`}
-                  ></span>
-                  {item.IsAvailable !== false ? "Available" : "Sold Out"}
+                {/* Status Toggle Badge */}
+                <div className="absolute top-3 right-3 z-10">
+                  <MenuAvailabilityToggle 
+                    menuId={item.ID} 
+                    initialAvailable={item.IsAvailable !== false} 
+                    token={token} 
+                  />
                 </div>
               </div>
 
