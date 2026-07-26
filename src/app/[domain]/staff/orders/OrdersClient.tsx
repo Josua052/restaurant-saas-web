@@ -14,12 +14,12 @@ import {
   X,
 } from "lucide-react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
-import { 
-  MenuCategory, 
-  MenuItem, 
-  TableResponseDTO, 
-  CartItem, 
-  CompletedSession 
+import {
+  MenuCategory,
+  MenuItem,
+  TableResponseDTO,
+  CartItem,
+  CompletedSession,
 } from "./types";
 import NoteModal from "./components/NoteModal";
 import OpenBillModal from "./components/OpenBillModal";
@@ -52,21 +52,21 @@ export default function OrdersClient({
   apiUrl: string;
 }) {
   const apiUrlV2 = apiUrl.replace("/v1", "/v2");
-  
+
   const [activeCategory, setActiveCategory] = useState<string>("All Menu");
   const [orderType, setOrderType] = useState<"Dine-in" | "Takeaway">("Dine-in");
   const [cart, setCart] = useState<CartItem[]>([]);
-  
+
   const searchParams = useSearchParams();
   const router = useRouter();
   const params = useParams();
   const domain = params.domain as string;
-  
+
   const isAddOn = searchParams.get("addon") === "true";
   const addOnOrderId = searchParams.get("orderId");
   const addOnTableId = searchParams.get("tableId");
   const addOnCustomerName = searchParams.get("customerName");
-  
+
   // Note Modal State
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [activeNoteItemId, setActiveNoteItemId] = useState<string | null>(null);
@@ -76,7 +76,8 @@ export default function OrdersClient({
   const [showOpenBillModal, setShowOpenBillModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [completedSession, setCompletedSession] = useState<CompletedSession | null>(null);
+  const [completedSession, setCompletedSession] =
+    useState<CompletedSession | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form States
@@ -91,26 +92,36 @@ export default function OrdersClient({
   const [cashReceived, setCashReceived] = useState<string>("");
 
   // Data Fetching
-  const { data: categories = [], isLoading: catLoading } = useSWR<MenuCategory[]>(
-    [`${apiUrl}/management/menus/categories`, token], fetcher
-  );
+  const { data: categories = [], isLoading: catLoading } = useSWR<
+    MenuCategory[]
+  >([`${apiUrl}/management/menus/categories`, token], fetcher);
 
   const { data: menus = [], isLoading: menuLoading } = useSWR<MenuItem[]>(
-    [`${apiUrl}/management/menus`, token], fetcher
+    [`${apiUrl}/management/menus`, token],
+    fetcher,
   );
 
   const { data: tablesData = [] } = useSWR<TableResponseDTO[]>(
-    [`${apiUrlV2}/management/tables?limit=100`, token], fetcher
+    [`${apiUrlV2}/management/tables?limit=100`, token],
+    fetcher,
   );
 
+  const { data: settings } = useSWR<{ tax_rate: number }>(
+    [`${apiUrl}/management/tenant/tax-rate`, token],
+    fetcher,
+  );
+
+  const taxRatePercent = settings?.tax_rate || 0;
+
+  // Initialize add on data
   useEffect(() => {
     if (addOnTableId) {
       setSelectedTableId(addOnTableId);
       setIsPreselectedTable(true);
-      
+
       // Auto-set area if table is found in data
       if (tablesData.length > 0) {
-        const table = tablesData.find(t => t.id === addOnTableId);
+        const table = tablesData.find((t) => t.id === addOnTableId);
         if (table && table.section_id) {
           setSelectedAreaId(table.section_id);
         }
@@ -132,7 +143,7 @@ export default function OrdersClient({
   // Unique Areas for Tables
   const uniqueAreas = useMemo(() => {
     const areas = new Map<string, string>();
-    tablesData.forEach(t => {
+    tablesData.forEach((t) => {
       if (t.section && t.section.id) {
         areas.set(t.section.id, t.section.name);
       }
@@ -144,7 +155,7 @@ export default function OrdersClient({
   const availableTables = useMemo(() => {
     let filtered = tablesData;
     if (selectedAreaId) {
-      filtered = filtered.filter(t => t.section_id === selectedAreaId);
+      filtered = filtered.filter((t) => t.section_id === selectedAreaId);
     }
     return filtered;
   }, [tablesData, selectedAreaId]);
@@ -152,9 +163,11 @@ export default function OrdersClient({
   // Cart Logic
   const addToCart = (menu: MenuItem) => {
     if (menu.IsAvailable === false) return;
-    
+
     setCart((prev) => {
-      const existing = prev.find((item) => item.menu_id === menu.ID && item.note === "");
+      const existing = prev.find(
+        (item) => item.menu_id === menu.ID && item.note === "",
+      );
       if (existing) {
         return prev.map((item) =>
           item.cart_id === existing.cart_id
@@ -162,7 +175,7 @@ export default function OrdersClient({
             : item,
         );
       }
-      
+
       return [
         ...prev,
         {
@@ -187,7 +200,7 @@ export default function OrdersClient({
           }
           return item;
         })
-        .filter((item) => item.quantity > 0)
+        .filter((item) => item.quantity > 0),
     );
   };
 
@@ -209,8 +222,8 @@ export default function OrdersClient({
         prev.map((item) =>
           item.cart_id === activeNoteItemId
             ? { ...item, note: noteText.trim() }
-            : item
-        )
+            : item,
+        ),
       );
     }
     setIsNoteModalOpen(false);
@@ -218,8 +231,11 @@ export default function OrdersClient({
 
   // Calculations
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const tax = subtotal * 0.1; // 10% PB1
+  const subtotal = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+  const tax = subtotal * (taxRatePercent / 100); // 10% PB1
   const grandTotal = subtotal + tax;
 
   const cashVal = parseInt(cashReceived.replace(/\D/g, "")) || 0;
@@ -234,8 +250,6 @@ export default function OrdersClient({
     }).format(val);
   };
 
-
-
   const closeSuccessModal = () => {
     setCart([]);
     setCustomerName("");
@@ -244,14 +258,15 @@ export default function OrdersClient({
     setCashReceived("");
     setCompletedSession(null);
     setShowSuccessModal(false);
-    
+
     // Redirect to kitchen to clear Add On states and show incoming orders
     router.push(`/${domain}/staff/kitchen`);
   };
 
   // Checkout Submission
   const handleCheckout = async (isDirectPayment: boolean) => {
-    const finalCustomerName = customerName.trim() || (isPreselectedTable ? "Guest (Table)" : "");
+    const finalCustomerName =
+      customerName.trim() || (isPreselectedTable ? "Guest (Table)" : "");
 
     if (!isDirectPayment && !finalCustomerName) {
       toast.error("Nama pelanggan wajib diisi.");
@@ -272,32 +287,36 @@ export default function OrdersClient({
         customer_name: finalCustomerName,
         table_id: isDirectPayment ? undefined : selectedTableId,
         payment_method: isDirectPayment ? paymentMethod : undefined,
-        items: cart.map(item => ({
+        items: cart.map((item) => ({
           menu_id: item.menu_id,
           quantity: item.quantity,
-          notes: item.note || ""
-        }))
+          notes: item.note || "",
+        })),
       };
 
       const res = await fetch(
-        isAddOn 
+        isAddOn
           ? `${apiUrlV2}/management/orders/${addOnOrderId}/items`
-          : `${apiUrlV2}/management/orders`, 
+          : `${apiUrlV2}/management/orders`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-            "Idempotency-Key": idempotencyKey
+            "Idempotency-Key": idempotencyKey,
           },
-          body: JSON.stringify(isAddOn ? {
-            idempotency_key: idempotencyKey,
-            items: payload.items,
-            subtotal,
-            tax,
-            total: grandTotal
-          } : payload),
-        }
+          body: JSON.stringify(
+            isAddOn
+              ? {
+                  idempotency_key: idempotencyKey,
+                  items: payload.items,
+                  subtotal,
+                  tax,
+                  total: grandTotal,
+                }
+              : payload,
+          ),
+        },
       );
 
       const data = await res.json();
@@ -317,20 +336,28 @@ export default function OrdersClient({
       }
 
       setCompletedSession({
-        receiptNumber: data.receipt_number || data.data?.receipt_number || "N/A",
-        queueNumber: data.queue_number || data.data?.queue_number,
-        orderType: data.order_type || data.data?.order_type || orderType,
-        items: [...cart],
-        subtotal,
-        tax,
-        total: grandTotal,
-        paymentMethod: isDirectPayment ? paymentMethod : undefined,
-        cashReceived: isDirectPayment ? cashVal : undefined,
-        change: isDirectPayment ? change : undefined,
-        createdAt: new Date().toISOString(),
+        receiptNumber:
+          data.receipt_number || data.data?.receipt_number || "N/A",
+          queueNumber: data.queue_number || data.data?.queue_number,
+          orderType: data.order_type || data.data?.order_type || orderType,
+          items: [...cart],
+          subtotal,
+          tax,
+          taxRatePercent,
+          total: grandTotal,
+          paymentMethod: isDirectPayment ? paymentMethod : undefined,
+          cashReceived: isDirectPayment ? cashVal : undefined,
+          change: isDirectPayment ? change : undefined,
+          createdAt: new Date().toISOString(),
       });
 
-      toast.success(isAddOn ? "Tambahan pesanan berhasil!" : isDirectPayment ? "Pesanan berhasil dibayar!" : "Open Bill berhasil dibuat!");
+      toast.success(
+        isAddOn
+          ? "Tambahan pesanan berhasil!"
+          : isDirectPayment
+            ? "Pesanan berhasil dibayar!"
+            : "Open Bill berhasil dibuat!",
+      );
       setShowOpenBillModal(false);
       setShowPaymentModal(false);
       setShowSuccessModal(true);
@@ -346,8 +373,10 @@ export default function OrdersClient({
       {/* LEFT: Menu Catalog */}
       <div className="flex-1 flex flex-col h-full overflow-hidden border-r border-slate-200">
         <div className="p-6 bg-white border-b border-slate-200 shrink-0">
-          <h1 className="text-2xl font-bold text-slate-900 mb-6">Katalog Menu</h1>
-          
+          <h1 className="text-2xl font-bold text-slate-900 mb-6">
+            Katalog Menu
+          </h1>
+
           {/* Categories Horizontal Scroll */}
           <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
             <button
@@ -397,8 +426,8 @@ export default function OrdersClient({
                       menu.IsAvailable === false
                         ? "border-slate-100 opacity-60 cursor-not-allowed"
                         : isInCart
-                        ? "border-indigo-300 ring-2 ring-indigo-500/20 cursor-default"
-                        : "border-slate-200 hover:border-indigo-300 hover:shadow-md cursor-pointer"
+                          ? "border-indigo-300 ring-2 ring-indigo-500/20 cursor-default"
+                          : "border-slate-200 hover:border-indigo-300 hover:shadow-md cursor-pointer"
                     }`}
                   >
                     {isInCart && (
@@ -406,7 +435,7 @@ export default function OrdersClient({
                         <CheckCircle2 className="w-5 h-5 text-indigo-600" />
                       </div>
                     )}
-                    
+
                     <div className="aspect-[4/3] w-full bg-slate-100 relative">
                       {menu.ImageURL ? (
                         <img
@@ -421,7 +450,7 @@ export default function OrdersClient({
                           No Image
                         </div>
                       )}
-                      
+
                       {menu.IsAvailable === false && (
                         <div className="absolute inset-0 bg-slate-900/10 flex items-center justify-center">
                           <span className="bg-slate-900/80 text-white text-xs font-bold px-3 py-1.5 rounded-full tracking-wider">
@@ -430,7 +459,7 @@ export default function OrdersClient({
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="p-4">
                       <h3 className="font-semibold text-slate-800 text-sm line-clamp-1">
                         {menu.Name}
@@ -470,7 +499,7 @@ export default function OrdersClient({
               </button>
             )}
           </div>
-          
+
           {/* Dine-in / Takeaway Toggle */}
           <div className="bg-slate-100 p-1 rounded-xl flex items-center">
             <button
@@ -507,46 +536,67 @@ export default function OrdersClient({
               <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <ShoppingBag className="w-10 h-10 text-slate-300" />
               </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-1">Belum ada pesanan</h3>
-              <p className="text-sm text-slate-500">Pilih menu untuk memulai pesanan</p>
+              <h3 className="text-lg font-bold text-slate-800 mb-1">
+                Belum ada pesanan
+              </h3>
+              <p className="text-sm text-slate-500">
+                Pilih menu untuk memulai pesanan
+              </p>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
               {cart.map((item) => (
-                <div key={item.cart_id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex gap-4 relative group">
+                <div
+                  key={item.cart_id}
+                  className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex gap-4 relative group"
+                >
                   <div className="w-16 h-16 rounded-xl bg-slate-100 overflow-hidden shrink-0">
                     {item.image_url ? (
-                      <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-300">
                         <ShoppingBag className="w-6 h-6" />
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <h4 className="font-semibold text-slate-800 text-sm truncate">{item.name}</h4>
-                    <p className="text-indigo-600 font-medium text-sm mt-0.5">{formatCurrency(item.price)}</p>
-                    
+                    <h4 className="font-semibold text-slate-800 text-sm truncate">
+                      {item.name}
+                    </h4>
+                    <p className="text-indigo-600 font-medium text-sm mt-0.5">
+                      {formatCurrency(item.price)}
+                    </p>
+
                     <button
                       onClick={() => openNoteModal(item.cart_id, item.note)}
                       className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-600 mt-2 transition-colors w-max"
                     >
                       <Edit2 className="w-3 h-3" />
-                      {item.note ? <span className="text-slate-600 truncate max-w-[120px]">{item.note}</span> : "+ Tambah Catatan"}
+                      {item.note ? (
+                        <span className="text-slate-600 truncate max-w-[120px]">
+                          {item.note}
+                        </span>
+                      ) : (
+                        "+ Tambah Catatan"
+                      )}
                     </button>
                   </div>
 
                   <div className="flex flex-col justify-between items-end shrink-0">
-                    <button 
+                    <button
                       onClick={() => removeItem(item.cart_id)}
                       className="p-1 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                    
+
                     <div className="flex items-center bg-slate-50 rounded-lg p-1 border border-slate-100 mt-2">
-                      <button 
+                      <button
                         onClick={() => updateQuantity(item.cart_id, -1)}
                         className="w-7 h-7 flex items-center justify-center bg-white rounded-md shadow-sm border border-slate-200 text-slate-600 hover:text-indigo-600 transition-colors"
                       >
@@ -555,7 +605,7 @@ export default function OrdersClient({
                       <span className="w-8 text-center text-sm font-semibold text-slate-800">
                         {item.quantity}
                       </span>
-                      <button 
+                      <button
                         onClick={() => updateQuantity(item.cart_id, 1)}
                         className="w-7 h-7 flex items-center justify-center bg-indigo-600 rounded-md shadow-sm text-white hover:bg-indigo-700 transition-colors"
                       >
@@ -573,25 +623,31 @@ export default function OrdersClient({
         <div className="p-6 bg-white border-t border-slate-100 shrink-0">
           <div className="flex justify-between items-center mb-2 text-sm">
             <span className="text-slate-500 font-medium">Subtotal</span>
-            <span className="text-slate-800 font-semibold">{formatCurrency(subtotal)}</span>
+            <span className="text-slate-800 font-semibold">
+              {formatCurrency(subtotal)}
+            </span>
           </div>
           <div className="flex justify-between items-center mb-4 text-sm">
             <div className="flex items-center gap-1 text-slate-500 font-medium">
-              Pajak (PB1 10%)
+              Pajak (PB1{taxRatePercent}%)
             </div>
-            <span className="text-slate-800 font-semibold">{formatCurrency(tax)}</span>
+            <span className="text-slate-800 font-semibold">
+              {formatCurrency(tax)}
+            </span>
           </div>
-          
+
           <div className="border-t border-slate-100 border-dashed mb-4"></div>
-          
+
           <div className="flex justify-between items-end mb-6">
             <span className="text-base font-bold text-slate-900">Total</span>
-            <span className="text-2xl font-black text-indigo-600">{formatCurrency(grandTotal)}</span>
+            <span className="text-2xl font-black text-indigo-600">
+              {formatCurrency(grandTotal)}
+            </span>
           </div>
 
           <div className="flex flex-col gap-3">
             {isAddOn ? (
-              <button 
+              <button
                 onClick={() => handleCheckout(false)}
                 disabled={cart.length === 0 || isSubmitting}
                 className="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -601,7 +657,7 @@ export default function OrdersClient({
             ) : (
               <>
                 {orderType === "Dine-in" && (
-                  <button 
+                  <button
                     onClick={() => {
                       if (isPreselectedTable) {
                         handleCheckout(false);
@@ -612,10 +668,12 @@ export default function OrdersClient({
                     disabled={cart.length === 0 || isSubmitting}
                     className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {isSubmitting && isPreselectedTable ? "Memproses..." : "Open Bill"}
+                    {isSubmitting && isPreselectedTable
+                      ? "Memproses..."
+                      : "Open Bill"}
                   </button>
                 )}
-                <button 
+                <button
                   onClick={() => setShowPaymentModal(true)}
                   disabled={cart.length === 0}
                   className="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -668,6 +726,7 @@ export default function OrdersClient({
         handleCheckout={() => handleCheckout(true)}
         formatCurrency={formatCurrency}
         isPreselectedTable={isPreselectedTable}
+        taxRatePercent={taxRatePercent}
       />
 
       <SuccessModal

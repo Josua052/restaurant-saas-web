@@ -46,6 +46,7 @@ export interface CompletedSession {
   items: CartItem[];
   subtotal: number;
   tax: number;
+  taxRatePercent: number;
   total: number;
   paymentMethod?: string;
   cashReceived?: number;

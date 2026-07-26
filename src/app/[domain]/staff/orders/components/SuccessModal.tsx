@@ -83,7 +83,7 @@ export default function SuccessModal({ isOpen, onClose, session }: SuccessModalP
     doc.text(formatCurrency(sessionData.subtotal), 75, y, { align: "right" });
     y += lineSpace;
 
-    doc.text("PB1 (10%)", 5, y);
+    doc.text("PB1 (${sessionData.taxRatePercent}%)", 5, y);
     doc.text(formatCurrency(sessionData.tax), 75, y, { align: "right" });
     y += lineSpace;
 
