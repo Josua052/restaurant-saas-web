@@ -20,7 +20,7 @@ interface TableData {
   capacity: number;
   status: number; // 1: Available, 2: Occupied, 3: Reserved
   section?: TableSection;
-  active_res?: { guest_name: string; time: string };
+  active_reservation?: { guest_name: string; time: string };
 }
 
 // Grouped data structure for UI
@@ -432,6 +432,19 @@ export default function TablesClient({ initialToken }: { initialToken: string })
                       </p>
                     </div>
                   </div>
+                ) : selectedTable.active_reservation ? (
+                  <div className="grid grid-cols-2 gap-y-4">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-0.5">Nama Pelanggan (Reservasi)</p>
+                      <p className="text-sm font-semibold text-slate-900">{selectedTable.active_reservation.guest_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 mb-0.5">Waktu Reservasi</p>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {selectedTable.active_reservation.time}
+                      </p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="text-sm text-slate-500 italic">Tidak ada sesi aktif.</div>
                 )}
@@ -507,8 +520,8 @@ export default function TablesClient({ initialToken }: { initialToken: string })
                     <button 
                       onClick={() => {
                         let url = `/${domain}/staff/orders?tableId=${selectedTable.id}`;
-                        if (selectedTable.active_res?.guest_name) {
-                          url += `&customerName=${encodeURIComponent(selectedTable.active_res.guest_name)}`;
+                        if (selectedTable.active_reservation?.guest_name) {
+                          url += `&customerName=${encodeURIComponent(selectedTable.active_reservation.guest_name)}`;
                         }
                         router.push(url);
                       }}

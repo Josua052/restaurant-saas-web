@@ -115,22 +115,36 @@ export default function OrdersClient({
 
   // Initialize add on data
   useEffect(() => {
+    let forcedName = false;
+
     if (addOnTableId) {
       setSelectedTableId(addOnTableId);
       setIsPreselectedTable(true);
 
-      // Auto-set area if table is found in data
+      // Auto-set area and validate reservation if table is found in data
       if (tablesData.length > 0) {
         const table = tablesData.find((t) => t.id === addOnTableId);
-        if (table && table.section_id) {
-          setSelectedAreaId(table.section_id);
+        if (table) {
+          if (table.section_id) {
+            setSelectedAreaId(table.section_id);
+          }
+          if (table.active_reservation?.guest_name) {
+            setCustomerName(table.active_reservation.guest_name);
+            forcedName = true;
+          } else if (!isAddOn) {
+            // STRICT MODE: If it's a new Open Bill and the table has NO reservation,
+            // DO NOT trust the URL customerName. Force it to empty.
+            setCustomerName("");
+            forcedName = true;
+          }
         }
       }
     }
-    if (addOnCustomerName) {
+
+    if (addOnCustomerName && !forcedName) {
       setCustomerName(addOnCustomerName);
     }
-  }, [addOnTableId, addOnCustomerName, tablesData]);
+  }, [addOnTableId, addOnCustomerName, tablesData, isAddOn]);
 
   // Filter Menus
   const filteredMenus = useMemo(() => {
@@ -658,19 +672,11 @@ export default function OrdersClient({
               <>
                 {orderType === "Dine-in" && (
                   <button
-                    onClick={() => {
-                      if (isPreselectedTable) {
-                        handleCheckout(false);
-                      } else {
-                        setShowOpenBillModal(true);
-                      }
-                    }}
+                    onClick={() => setShowOpenBillModal(true)}
                     disabled={cart.length === 0 || isSubmitting}
                     className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {isSubmitting && isPreselectedTable
-                      ? "Memproses..."
-                      : "Open Bill"}
+                    Open Bill
                   </button>
                 )}
                 <button

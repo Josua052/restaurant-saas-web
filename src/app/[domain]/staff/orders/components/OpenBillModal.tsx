@@ -92,8 +92,8 @@ export default function OpenBillModal({
                 setSelectedTableId(newId);
                 if (newId) {
                   const table = availableTables.find((t) => t.id === newId);
-                  if (table?.active_res?.guest_name) {
-                    setCustomerName(table.active_res.guest_name);
+                  if (table?.active_reservation?.guest_name) {
+                    setCustomerName(table.active_reservation.guest_name);
                   }
                 }
               }}
