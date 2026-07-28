@@ -94,8 +94,6 @@ export default function SettingsClient({ token }: SettingsClientProps) {
   );
   const [isHoursLoading, setIsHoursLoading] = useState(true);
 
-  
-
   useEffect(() => {
     fetchSettings();
     fetchOperatingHours();
@@ -286,7 +284,7 @@ export default function SettingsClient({ token }: SettingsClientProps) {
   }
 
   return (
-    <div suppressHydrationWarning className="w-full space-y-8">
+    <div suppressHydrationWarning className="w-full p-8 space-y-8">
       {/*  Header  */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>

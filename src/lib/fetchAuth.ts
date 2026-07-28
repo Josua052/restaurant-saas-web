@@ -3,7 +3,24 @@
  * if a 401 Unauthorized response is received.
  */
 export async function fetchAuth(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  let response = await fetch(input, init);
+  // Setup headers
+  const headers = new Headers(init?.headers);
+  
+  // Inject X-Branch-ID if available in localStorage
+  if (typeof window !== "undefined") {
+    const activeBranchId = localStorage.getItem("active_branch_id");
+    if (activeBranchId) {
+      headers.set("X-Branch-ID", activeBranchId);
+    }
+  }
+
+  // Create new init object with updated headers
+  const newInit: RequestInit = {
+    ...init,
+    headers,
+  };
+
+  let response = await fetch(input, newInit);
 
   // If the token is expired or unauthorized
   if (response.status === 401) {
@@ -24,7 +41,7 @@ export async function fetchAuth(input: RequestInfo | URL, init?: RequestInit): P
 
       if (refreshResponse.ok) {
         // If refresh was successful, the Next.js API route has updated the HTTP-Only cookies.
-        response = await fetch(input, init);
+        response = await fetch(input, newInit);
       } else {
         // Refresh failed, check why
         let isSuspended = false;

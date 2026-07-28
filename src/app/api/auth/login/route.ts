@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     
     // Extract role by fetching the user profile from the backend
     let userRole = "owner";
+    let isOnboarded = true; // default true for backward compatibility
     try {
       const profileRes = await fetch(`${API_URL}/management/auth/me`, {
         headers: {
@@ -55,6 +56,9 @@ export async function POST(request: Request) {
       if (profileRes.ok) {
         const profileData = await profileRes.json();
         userRole = profileData.data?.role?.toLowerCase() || "owner";
+        if (profileData.data?.is_onboarded !== undefined) {
+          isOnboarded = profileData.data.is_onboarded;
+        }
       }
     } catch (err) {
       console.error("Failed to fetch profile during login:", err);
@@ -66,6 +70,7 @@ export async function POST(request: Request) {
         success: true,
         message: "Login successful",
         role: userRole,
+        is_onboarded: isOnboarded,
       },
       { status: 200 },
     );

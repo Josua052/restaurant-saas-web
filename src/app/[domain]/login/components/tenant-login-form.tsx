@@ -89,11 +89,16 @@ useEffect(() => {
 
       // Route the user to their specific tenant dashboard based on role
       const userRole = result.role?.toLowerCase() || "owner";
+      const isOnboarded = result.is_onboarded;
       
       if (userRole === "staff" || userRole === "cashier") {
         router.push(`/${domain}/staff`);
       } else {
-        router.push(`/${domain}/owner`);
+        if (isOnboarded === false) {
+          router.push(`/${domain}/onboarding`);
+        } else {
+          router.push(`/${domain}/owner`);
+        }
       }
     } catch (err) {
       console.error("Login failed:", err);
