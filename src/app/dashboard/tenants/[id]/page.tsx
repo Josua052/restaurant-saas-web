@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Store, Calendar, User, ShieldAlert, ArrowLeft } from "lucide-react";
+import { Store, Calendar, User, ShieldAlert, ArrowLeft, CreditCard, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import TenantActionsClient from "./TenantActionsClient";
+import EditTenantModal from "./EditTenantModal";
 
 export default async function TenantDetailPage({
   params,
@@ -150,7 +151,7 @@ export default async function TenantDetailPage({
       </div>
 
       {/* Info Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Restaurant Info */}
         <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
           <CardHeader className="border-b border-slate-100 pb-4 pt-6">
@@ -229,6 +230,70 @@ export default async function TenantDetailPage({
                 </dt>
                 <dd className="col-span-2 text-slate-500">
                   {detail.owner_phone || "No phone number provided yet"}
+                </dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+
+        {/* Subscription & Limits */}
+        <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden self-start">
+          <CardHeader className="border-b border-slate-100 pb-4 pt-6 flex flex-row items-center justify-between">
+            <CardTitle className="text-base font-bold flex items-center text-slate-900">
+              <CreditCard className="h-5 w-5 mr-2 text-indigo-700" />
+              Subscription
+            </CardTitle>
+            <EditTenantModal tenant={detail} token={token} />
+          </CardHeader>
+          <CardContent className="pt-6 pb-8">
+            <dl className="space-y-6 text-sm">
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-slate-500 font-semibold text-[11px] tracking-wider uppercase pt-0.5">
+                  Tier
+                </dt>
+                <dd className="col-span-2 text-slate-800 font-bold">
+                  {detail.subscription_tier || "Basic"}
+                </dd>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-slate-500 font-semibold text-[11px] tracking-wider uppercase pt-0.5">
+                  Valid Until
+                </dt>
+                <dd className="col-span-2 text-slate-800 font-medium">
+                  {detail.subscription_valid_until
+                    ? new Intl.DateTimeFormat("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      }).format(new Date(detail.subscription_valid_until))
+                    : "Not Set"}
+                </dd>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-slate-500 font-semibold text-[11px] tracking-wider uppercase pt-0.5">
+                  Branch Limit
+                </dt>
+                <dd className="col-span-2 text-slate-800">
+                  {detail.max_branches || 1} Branches max
+                </dd>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <dt className="text-slate-500 font-semibold text-[11px] tracking-wider uppercase pt-0.5">
+                  Modules
+                </dt>
+                <dd className="col-span-2 flex flex-wrap gap-1.5 mt-0.5">
+                  {detail.capabilities && detail.capabilities.length > 0 ? (
+                    detail.capabilities.map((cap: string) => (
+                      <span
+                        key={cap}
+                        className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100"
+                      >
+                        {cap.replace("_", " ")}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-slate-400 italic text-xs">No active modules</span>
+                  )}
                 </dd>
               </div>
             </dl>
