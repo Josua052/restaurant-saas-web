@@ -19,7 +19,7 @@ export async function fetchAuth(input: RequestInfo | URL, init?: RequestInit): P
       activeBranchId = localStorage.getItem("active_branch_id");
     }
 
-    if (activeBranchId) {
+    if (activeBranchId && !headers.has("X-Branch-ID")) {
       headers.set("X-Branch-ID", activeBranchId);
     }
   }

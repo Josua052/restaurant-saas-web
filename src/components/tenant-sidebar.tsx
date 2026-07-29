@@ -14,6 +14,7 @@ import {
   Armchair,
   Gift,
   QrCode,
+  Store,
 } from "lucide-react";
 import { useProfile } from "@/providers/ProfileProvider";
 import { BranchSwitcher } from "@/components/layout/branch-switcher";
@@ -101,11 +102,18 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
   }
 
   if (role === "owner") {
-    navItems.push({
-      name: "Employees",
-      href: `${basePath}/employees`,
-      icon: Users,
-    });
+    navItems.push(
+      {
+        name: "Branches",
+        href: `${basePath}/branches`,
+        icon: Store,
+      },
+      {
+        name: "Employees",
+        href: `${basePath}/employees`,
+        icon: Users,
+      }
+    );
   }
 
   // Extract first letter for logo
