@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Store, Check, ChevronsUpDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,13 +11,28 @@ import {
 import { fetchAuth } from "@/lib/fetchAuth";
 
 interface Branch {
-  id: string;
-  name: string;
+  id?: string;
+  ID?: string;
+  name?: string;
+  Name?: string;
+  is_main?: boolean;
+  IsMain?: boolean;
 }
+
+const getBranchId = (b: Branch) => b.id || b.ID;
+const getBranchName = (b: Branch) => b.name || b.Name;
 
 export function BranchSwitcher() {
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [activeBranchId, setActiveBranchId] = useState<string>("");
+  const [activeBranch, setActiveBranch] = useState<Branch | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const getStorageKey = () => {
+    if (typeof window === "undefined") return "active_branch_id";
+    const pathParts = window.location.pathname.split("/");
+    const domain = pathParts[1] !== "dashboard" ? pathParts[1] : "";
+    return domain ? `active_branch_id_${domain}` : "active_branch_id";
+  };
 
   useEffect(() => {
     const fetchBranches = async () => {
@@ -28,13 +42,34 @@ export function BranchSwitcher() {
         if (data.success && data.data) {
           setBranches(data.data);
           
-          // Set active branch from localStorage or default to first branch
-          const stored = localStorage.getItem("active_branch_id");
-          if (stored && data.data.some((b: Branch) => b.id === stored)) {
-            setActiveBranchId(stored);
-          } else if (data.data.length > 0) {
-            setActiveBranchId(data.data[0].id);
-            localStorage.setItem("active_branch_id", data.data[0].id);
+          // If no active branch is set, default to the main one (or first one)
+          const storageKey = getStorageKey();
+          let stored = localStorage.getItem(storageKey);
+          
+          // Fallback to legacy
+          if (!stored) {
+             stored = localStorage.getItem("active_branch_id");
+             if (stored) localStorage.setItem(storageKey, stored); // migrate
+          }
+
+          let isValid = false;
+          if (stored) {
+            const found = data.data.find((b: Branch) => getBranchId(b) === stored);
+            if (found) {
+              setActiveBranch(found);
+              isValid = true;
+            }
+          }
+
+          if (!isValid && data.data.length > 0) {
+            const main = data.data.find((b: Branch) => b.is_main || b.IsMain) || data.data[0];
+            const mainId = getBranchId(main);
+            setActiveBranch(main);
+            if (mainId) {
+              localStorage.setItem(storageKey, mainId);
+              localStorage.setItem("active_branch_id", mainId); // update legacy fallback
+            }
+            window.location.reload();
           }
         }
       } catch (error) {
@@ -45,45 +80,42 @@ export function BranchSwitcher() {
     fetchBranches();
   }, []);
 
-  const handleSelect = (branchId: string) => {
-    setActiveBranchId(branchId);
-    localStorage.setItem("active_branch_id", branchId);
+  const handleBranchSelect = (branch: Branch) => {
+    setActiveBranch(branch);
+    const id = getBranchId(branch);
+    if (id) {
+      localStorage.setItem(getStorageKey(), id);
+    }
     // Reload page to reflect branch data context across all components
     window.location.reload();
   };
-
-  const activeBranch = branches.find((b) => b.id === activeBranchId);
 
   if (branches.length === 0) return null;
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          className="w-[200px] justify-between border-slate-200 bg-slate-50 hover:bg-slate-100"
-        >
-          <div className="flex items-center gap-2 truncate">
-            <Store className="h-4 w-4 text-slate-500" />
-            <span className="truncate">{activeBranch?.name || "Select Branch"}</span>
-          </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+      <DropdownMenuTrigger
+        className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium hover:bg-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      >
+        <div className="flex items-center gap-2 truncate">
+          <Store className="h-4 w-4 text-slate-500" />
+          <span className="truncate">{activeBranch ? getBranchName(activeBranch) : "Select Branch"}</span>
+        </div>
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-[200px] p-1 bg-white">
         {branches.map((branch) => (
           <DropdownMenuItem
-            key={branch.id}
-            onClick={() => handleSelect(branch.id)}
+            key={getBranchId(branch)}
+            onClick={() => handleBranchSelect(branch)}
             className="flex items-center gap-2 cursor-pointer py-2"
           >
             <Check
               className={`h-4 w-4 ${
-                activeBranchId === branch.id ? "opacity-100" : "opacity-0"
+                getBranchId(activeBranch as Branch) === getBranchId(branch) ? "opacity-100" : "opacity-0"
               }`}
             />
-            {branch.name}
+            {getBranchName(branch)}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

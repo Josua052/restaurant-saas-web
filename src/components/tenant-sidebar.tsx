@@ -14,6 +14,7 @@ import {
   Armchair,
 } from "lucide-react";
 import { useProfile } from "@/providers/ProfileProvider";
+import { BranchSwitcher } from "@/components/layout/branch-switcher";
 
 interface TenantSidebarProps {
   role?: "owner" | "staff";
@@ -120,6 +121,13 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
           </p>
         </div>
       </div>
+
+      {/* Branch Switcher Area */}
+      {role === "owner" && (
+        <div className="px-4 xl:px-6 pb-4 border-b border-slate-100 shrink-0">
+          <BranchSwitcher />
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 md:px-3 xl:px-4 py-6 flex flex-col gap-1.5 overflow-y-auto">

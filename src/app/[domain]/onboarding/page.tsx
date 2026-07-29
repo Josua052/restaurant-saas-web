@@ -59,7 +59,8 @@ export default function OnboardingPage({ params }: { params: Promise<{ domain: s
 
       // Simpan branchID ke localStorage sebagai cabang aktif
       if (typeof window !== "undefined") {
-        localStorage.setItem("active_branch_id", result.data.id);
+        localStorage.setItem(`active_branch_id_${domain}`, result.data.id);
+        localStorage.setItem("active_branch_id", result.data.id); // legacy
       }
 
       // Arahkan ke dashboard Owner

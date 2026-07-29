@@ -8,7 +8,17 @@ export async function fetchAuth(input: RequestInfo | URL, init?: RequestInit): P
   
   // Inject X-Branch-ID if available in localStorage
   if (typeof window !== "undefined") {
-    const activeBranchId = localStorage.getItem("active_branch_id");
+    const currentPath = window.location.pathname;
+    const domain = currentPath.split('/')[1];
+    let activeBranchId = null;
+    
+    if (domain && domain !== 'dashboard' && domain !== 'login') {
+      activeBranchId = localStorage.getItem(`active_branch_id_${domain}`);
+    }
+    if (!activeBranchId) {
+      activeBranchId = localStorage.getItem("active_branch_id");
+    }
+
     if (activeBranchId) {
       headers.set("X-Branch-ID", activeBranchId);
     }
