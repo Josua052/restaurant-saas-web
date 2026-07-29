@@ -68,6 +68,7 @@ useEffect(() => {
         body: JSON.stringify({
           email: data.email,
           password: data.password,
+          domain: domain,
         }),
       });
 

@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, scope = "tenant" } = body;
+    const { email, password, scope = "tenant", domain } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, password, portal: scope }),
+      body: JSON.stringify({ email, password, portal: scope, domain }),
     });
 
     const data = await backendResponse.json();
