@@ -122,7 +122,7 @@ export default function OrdersClient({
       setIsPreselectedTable(true);
 
       // Auto-set area and validate reservation if table is found in data
-      if (tablesData.length > 0) {
+      if (tablesData && tablesData.length > 0) {
         const table = tablesData.find((t) => t.id === addOnTableId);
         if (table) {
           if (table.section_id) {
@@ -157,7 +157,7 @@ export default function OrdersClient({
   // Unique Areas for Tables
   const uniqueAreas = useMemo(() => {
     const areas = new Map<string, string>();
-    tablesData.forEach((t) => {
+    (tablesData || []).forEach((t) => {
       if (t.section && t.section.id) {
         areas.set(t.section.id, t.section.name);
       }
@@ -167,7 +167,7 @@ export default function OrdersClient({
 
   // Filtered Tables based on selected area
   const availableTables = useMemo(() => {
-    let filtered = tablesData;
+    let filtered = tablesData || [];
     if (selectedAreaId) {
       filtered = filtered.filter((t) => t.section_id === selectedAreaId);
     }
