@@ -26,6 +26,7 @@ export default async function OwnerLayout({
     branchAddress: "",
     currency: "IDR",
     logoUrl: "",
+    capabilities: [],
   };
 
   let shouldRedirectToStaff = false;
@@ -50,6 +51,7 @@ export default async function OwnerLayout({
             branchAddress: json.data.branch_address || json.data.address || "",
             currency: json.data.currency || "IDR",
             logoUrl: json.data.logo_url || "",
+            capabilities: json.data.capabilities || [],
           };
         }
       }

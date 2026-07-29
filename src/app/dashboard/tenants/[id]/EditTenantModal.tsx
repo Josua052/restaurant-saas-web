@@ -44,17 +44,32 @@ export default function EditTenantModal({ tenant, token }: EditTenantModalProps)
   const [maxBranches, setMaxBranches] = useState(tenant.max_branches || 1);
   const [capabilities, setCapabilities] = useState<string[]>(tenant.capabilities || []);
 
+  // Helper: parse date string robustly (handles both "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DDTHH:MM:SS")
+  const parseDateString = (raw: string): string => {
+    if (!raw) return "";
+    // Split on either space or 'T' to extract YYYY-MM-DD
+    return raw.split(/[T ]/)[0] ?? "";
+  };
+
   // Sync state when modal opens
   useEffect(() => {
     if (open) {
       setRestaurantName(tenant.restaurant_name);
       setSubscriptionTier(tenant.subscription_tier || "Basic");
-      setSubscriptionValidUntil(tenant.subscription_valid_until ? tenant.subscription_valid_until.split("T")[0] : "");
+      setSubscriptionValidUntil(parseDateString(tenant.subscription_valid_until));
       setMaxBranches(tenant.max_branches || 1);
       setCapabilities(tenant.capabilities || []);
       setServerError("");
     }
   }, [open, tenant]);
+
+  // Auto-lock maxBranches to 1 when multi_branch module is not active
+  const isMultiBranchActive = capabilities.includes("multi_branch");
+  useEffect(() => {
+    if (!isMultiBranchActive) {
+      setMaxBranches(1);
+    }
+  }, [isMultiBranchActive]);
 
   // Auto-select based on Tier (Optional helper, but user can override)
   const handleTierChange = (tier: string) => {
@@ -190,7 +205,6 @@ export default function EditTenantModal({ tenant, token }: EditTenantModalProps)
                 <div className="relative">
                   <Input
                     type="date"
-                    required
                     value={subscriptionValidUntil}
                     onChange={(e) => setSubscriptionValidUntil(e.target.value)}
                     className="h-11 pl-10 font-medium border-slate-200 focus-visible:ring-indigo-500"
@@ -200,14 +214,24 @@ export default function EditTenantModal({ tenant, token }: EditTenantModalProps)
               </div>
 
               <div className="space-y-2.5">
-                <label className="text-[13px] font-semibold text-slate-700 block">Max Branches Allowed</label>
+                <label className="text-[13px] font-semibold text-slate-700 block">
+                  Max Branches Allowed
+                  {!isMultiBranchActive && (
+                    <span className="ml-2 text-[11px] font-normal text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                      Aktifkan Multi Branch untuk mengubah
+                    </span>
+                  )}
+                </label>
                 <Input
                   type="number"
                   min="1"
                   required
                   value={maxBranches}
+                  disabled={!isMultiBranchActive}
                   onChange={(e) => setMaxBranches(parseInt(e.target.value) || 1)}
-                  className="h-11 font-medium border-slate-200 focus-visible:ring-indigo-500"
+                  className={`h-11 font-medium border-slate-200 focus-visible:ring-indigo-500 ${
+                    !isMultiBranchActive ? "bg-slate-100 text-slate-400 cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
             </div>

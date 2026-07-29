@@ -12,6 +12,8 @@ import {
   ChefHat,
   ClipboardList,
   Armchair,
+  Gift,
+  QrCode,
 } from "lucide-react";
 import { useProfile } from "@/providers/ProfileProvider";
 import { BranchSwitcher } from "@/components/layout/branch-switcher";
@@ -25,7 +27,7 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
   const params = useParams();
   const router = useRouter();
   const domain = (params?.domain as string) || "";
-  const { restaurantName, branchAddress, logoUrl } = useProfile();
+  const { restaurantName, branchAddress, logoUrl, capabilities = [] } = useProfile();
 
   const basePath = `/${domain}/${role}`;
 
@@ -66,21 +68,37 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
   ];
 
   if (role === "staff") {
-    navItems.push(
-      { name: "Orders", href: `${basePath}/orders`, icon: ClipboardList },
-      { name: "Kitchen", href: `${basePath}/kitchen`, icon: ChefHat }
-    );
+    if (capabilities.includes("order")) {
+      navItems.push(
+        { name: "Orders", href: `${basePath}/orders`, icon: ClipboardList },
+        { name: "Kitchen", href: `${basePath}/kitchen`, icon: ChefHat }
+      );
+    }
   }
 
-  navItems.push(
-    { name: "Tables", href: `${basePath}/tables`, icon: Armchair },
-    {
+  if (capabilities.includes("pos") || capabilities.includes("order")) {
+    navItems.push({ name: "Tables", href: `${basePath}/tables`, icon: Armchair });
+  }
+
+  if (capabilities.includes("reservation")) {
+    navItems.push({
       name: "Reservations",
       href: `${basePath}/reservations`,
       icon: CalendarCheck,
-    },
-    { name: "Menu", href: `${basePath}/menu`, icon: Utensils }
-  );
+    });
+  }
+
+  if (capabilities.includes("menu")) {
+    navItems.push({ name: "Menu", href: `${basePath}/menu`, icon: Utensils });
+  }
+
+  if (capabilities.includes("qr_menu")) {
+    navItems.push({ name: "QR Menu", href: `${basePath}/qr-menu`, icon: QrCode });
+  }
+
+  if (capabilities.includes("loyalty")) {
+    navItems.push({ name: "Loyalty", href: `${basePath}/loyalty`, icon: Gift });
+  }
 
   if (role === "owner") {
     navItems.push({

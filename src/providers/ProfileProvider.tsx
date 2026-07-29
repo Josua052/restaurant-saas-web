@@ -7,6 +7,7 @@ export interface ProfileData {
   branchAddress: string;
   currency: string;
   logoUrl?: string;
+  capabilities?: string[];
 }
 
 const ProfileContext = createContext<ProfileData | undefined>(undefined);

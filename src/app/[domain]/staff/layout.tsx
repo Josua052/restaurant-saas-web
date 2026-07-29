@@ -26,6 +26,7 @@ export default async function StaffLayout({
     branchAddress: "",
     currency: "IDR",
     logoUrl: "",
+    capabilities: [],
   };
 
   if (token) {
@@ -42,6 +43,7 @@ export default async function StaffLayout({
             branchAddress: json.data.branch_address || json.data.address || "",
             currency: json.data.currency || "IDR",
             logoUrl: json.data.logo_url || "",
+            capabilities: json.data.capabilities || [],
           };
         }
       }
