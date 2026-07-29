@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import useSWR from "swr";
 import {
   Download,
@@ -38,14 +38,16 @@ interface DashboardStatsResponse {
   top_items: { name: string; quantity: number }[];
 }
 
-// Fetcher for SWR
-const fetcher = async ([url, token]: [string, string]) => {
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
+// Fetcher for SWR - accepts optional branchId header
+const fetcher = async ([url, token, branchId]: [string, string, string]) => {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+  if (branchId) {
+    headers["X-Branch-ID"] = branchId;
+  }
+  const res = await fetch(url, { headers });
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
     throw new Error(errData.message || "Failed to fetch dashboard data");
@@ -78,6 +80,38 @@ export default function DashboardClient({
   const [activeTab, setActiveTab] = useState<string>("this_month");
   const [customDate, setCustomDate] = useState<Date>(new Date());
 
+  // Read active branch from localStorage (set by BranchSwitcher)
+  // Use a helper function that is safe to call on server (localStorage not available)
+  const getStoredBranchId = useCallback((): string => {
+    if (typeof window === "undefined") return "";
+    const pathParts = window.location.pathname.split("/");
+    const domain = pathParts[1] !== "dashboard" ? pathParts[1] : "";
+    const key = domain ? `active_branch_id_${domain}` : "active_branch_id";
+    return localStorage.getItem(key) || localStorage.getItem("active_branch_id") || "";
+  }, []);
+
+  // Lazy initializer: reads localStorage synchronously on first render so SWR
+  // immediately fires with the correct branch — no double-fetch.
+  const [activeBranchId, setActiveBranchId] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    const pathParts = window.location.pathname.split("/");
+    const domain = pathParts[1] !== "dashboard" ? pathParts[1] : "";
+    const key = domain ? `active_branch_id_${domain}` : "active_branch_id";
+    return localStorage.getItem(key) || localStorage.getItem("active_branch_id") || "";
+  });
+
+  useEffect(() => {
+    // Re-sync in case it was set after initial render
+    setActiveBranchId(getStoredBranchId());
+
+    // Listen for branch switches across tabs (storage event)
+    const handleStorageChange = () => {
+      setActiveBranchId(getStoredBranchId());
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [getStoredBranchId]);
+
   // Determine query parameters
   let queryParams = `period=${filter}`;
   if (filter === "custom") {
@@ -89,9 +123,9 @@ export default function DashboardClient({
     queryParams += `&start_date=${localISOTime}&end_date=${localISOTime}`;
   }
 
-  // Fetch data using SWR
+  // Fetch data using SWR — include activeBranchId in cache key so SWR re-fetches on branch switch
   const { data, error, isLoading } = useSWR(
-    [`${apiUrl}/management/dashboard/owner?${queryParams}`, token],
+    [`${apiUrl}/management/dashboard/owner?${queryParams}`, token, activeBranchId],
     fetcher,
   );
 
