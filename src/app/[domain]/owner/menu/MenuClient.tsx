@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,6 +11,7 @@ import {
   UtensilsCrossed,
   Loader2,
 } from "lucide-react";
+import useSWR from "swr";
 import { useProfile } from "@/providers/ProfileProvider";
 
 export interface MenuCategory {
@@ -56,6 +57,42 @@ export default function MenuClient({
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Branch & Data Fetching
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getStoredBranchId = (): string => {
+      const pathParts = window.location.pathname.split("/");
+      const dom = pathParts[1] !== "dashboard" ? pathParts[1] : "";
+      const key = dom ? `active_branch_id_${dom}` : "active_branch_id";
+      return localStorage.getItem(key) || "";
+    };
+    setActiveBranchId(getStoredBranchId());
+    const handleStorage = () => setActiveBranchId(getStoredBranchId());
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  const fetcher = async (url: string) => {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+    if (activeBranchId) headers["X-Branch-ID"] = activeBranchId;
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error("Failed to fetch");
+    const json = await res.json();
+    return json.data;
+  };
+
+  const { data: clientMenus } = useSWR<MenuItem[]>(
+    activeBranchId !== null ? `${API_URL}/management/menus` : null,
+    fetcher,
+    { fallbackData: menus },
+  );
+
+  const displayMenus = clientMenus || menus;
+
   // State for filtering
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("All");
@@ -80,7 +117,7 @@ export default function MenuClient({
 
   // Filter items based on search and selected category
   const filteredMenus = useMemo(() => {
-    return menus.filter((item) => {
+    return displayMenus.filter((item) => {
       const matchesSearch =
         item.Name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.Description &&
@@ -89,7 +126,7 @@ export default function MenuClient({
         selectedCategoryId === "All" || item.CategoryID === selectedCategoryId;
       return matchesSearch && matchesCategory;
     });
-  }, [menus, searchQuery, selectedCategoryId]);
+  }, [displayMenus, searchQuery, selectedCategoryId]);
 
   const handleCreateCategory = async () => {
     if (!categoryName.trim()) {
@@ -206,7 +243,7 @@ export default function MenuClient({
       </div>
       <div className="p-6 md:p-8">
         {/* Menu Cards Grid or Empty State */}
-        {menus.length === 0 ? (
+        {displayMenus.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col items-center justify-center p-12 text-center min-h-[400px]">
             <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6">
               <UtensilsCrossed className="w-10 h-10 text-slate-300" />

@@ -32,13 +32,13 @@ type TableData = {
 };
 
 // SWR Fetchers
-const fetcherFull = async ([url, token]: [string, string]) => {
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
+const fetcherFull = async ([url, token, branchId]: [string, string, string]) => {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+  if (branchId) headers["X-Branch-ID"] = branchId;
+  const res = await fetch(url, { headers });
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
     throw new Error(
@@ -48,9 +48,17 @@ const fetcherFull = async ([url, token]: [string, string]) => {
   return res.json();
 };
 
-const fetcher = async (args: [string, string]) => {
+const fetcher = async (args: [string, string, string]) => {
   const json = await fetcherFull(args);
   return json.data;
+};
+
+// Helper to read active branch from localStorage (same logic as BranchSwitcher)
+const getStoredBranchId = (): string => {
+  const pathParts = window.location.pathname.split("/");
+  const domain = pathParts[1] !== "dashboard" ? pathParts[1] : "";
+  const key = domain ? `active_branch_id_${domain}` : "active_branch_id";
+  return localStorage.getItem(key) || localStorage.getItem("active_branch_id") || "";
 };
 
 export default function TablesClient({
@@ -66,16 +74,29 @@ export default function TablesClient({
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
 
+  // activeBranchId starts as null (not yet read from localStorage).
+  // SWR keys using null will NOT fire until it's set to a string.
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Read from localStorage after mount (client-side only)
+    const id = getStoredBranchId();
+    setActiveBranchId(id); // Set even if empty string — triggers SWR
+    const handleStorage = () => setActiveBranchId(getStoredBranchId());
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setCurrentPage(1); // Reset page on search
+      setCurrentPage(1);
     }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
   useEffect(() => {
-    setCurrentPage(1); // Reset page on zone change
+    setCurrentPage(1);
   }, [activeZone]);
 
   // Modal States
@@ -91,9 +112,9 @@ export default function TablesClient({
   // Selected Item State
   const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
 
-  // Data Fetching
+  // Data Fetching — null key = SWR skips until activeBranchId is ready
   const { data: sections = [] } = useSWR<TableSection[]>(
-    [`${apiUrl}/management/sections`, token],
+    activeBranchId !== null ? [`${apiUrl}/management/sections`, token, activeBranchId] : null,
     fetcher,
   );
 
@@ -109,7 +130,7 @@ export default function TablesClient({
   }
 
   const { data: tablesRes, isLoading: tablesLoading } = useSWR(
-    [`${apiUrl}/management/tables?${queryParams.toString()}`, token],
+    activeBranchId !== null ? [`${apiUrl}/management/tables?${queryParams.toString()}`, token, activeBranchId] : null,
     fetcherFull
   );
   
@@ -187,6 +208,7 @@ export default function TablesClient({
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            ...(activeBranchId ? { "X-Branch-ID": activeBranchId } : {}),
           },
           body: JSON.stringify(payload),
         });
@@ -210,6 +232,7 @@ export default function TablesClient({
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
+              ...(activeBranchId ? { "X-Branch-ID": activeBranchId } : {}),
             },
             body: JSON.stringify(payload),
           },
@@ -223,7 +246,7 @@ export default function TablesClient({
         toast.success("Table updated successfully");
       }
 
-      mutate([`${apiUrl}/management/tables?${queryParams.toString()}`, token]);
+      mutate([`${apiUrl}/management/tables?${queryParams.toString()}`, token, activeBranchId]);
       handleCloseModals();
     } catch (err: any) {
       setFormError(err.message || "An error occurred");
@@ -240,6 +263,7 @@ export default function TablesClient({
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
+            ...(activeBranchId ? { "X-Branch-ID": activeBranchId } : {}),
           },
         },
       );
@@ -251,7 +275,7 @@ export default function TablesClient({
       }
       toast.success("Table deleted successfully");
 
-      mutate([`${apiUrl}/management/tables?${queryParams.toString()}`, token]);
+      mutate([`${apiUrl}/management/tables?${queryParams.toString()}`, token, activeBranchId]);
       handleCloseModals();
     } catch (err: any) {
       toast.error(err.message || "Failed to delete table");
@@ -268,6 +292,7 @@ export default function TablesClient({
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...(activeBranchId ? { "X-Branch-ID": activeBranchId } : {}),
         },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -278,7 +303,7 @@ export default function TablesClient({
       }
 
       toast.success(`Table marked as ${newStatus === 4 ? 'Closed' : 'Available'}`);
-      mutate([`${apiUrl}/management/tables?${queryParams.toString()}`, token]);
+      mutate([`${apiUrl}/management/tables?${queryParams.toString()}`, token, activeBranchId]);
       setActivePopover(null);
     } catch (err: any) {
       toast.error(err.message || "Failed to update status");
@@ -297,6 +322,7 @@ export default function TablesClient({
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...(activeBranchId ? { "X-Branch-ID": activeBranchId } : {}),
         },
         body: JSON.stringify({ name: areaName.trim() }),
       });
@@ -310,7 +336,7 @@ export default function TablesClient({
       toast.success("Area added successfully");
       setAreaName("");
       setIsAddAreaModalOpen(false);
-      mutate([`${apiUrl}/management/sections`, token]); // Reload sections
+      mutate([`${apiUrl}/management/sections`, token, activeBranchId]); // Reload sections
     } catch (err: any) {
       setAreaError(err.message || "Failed to add area");
       toast.error(err.message || "Failed to add area");

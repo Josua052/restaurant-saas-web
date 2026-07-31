@@ -90,19 +90,14 @@ export default function DashboardClient({
     return localStorage.getItem(key) || localStorage.getItem("active_branch_id") || "";
   }, []);
 
-  // Lazy initializer: reads localStorage synchronously on first render so SWR
-  // immediately fires with the correct branch — no double-fetch.
-  const [activeBranchId, setActiveBranchId] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    const pathParts = window.location.pathname.split("/");
-    const domain = pathParts[1] !== "dashboard" ? pathParts[1] : "";
-    const key = domain ? `active_branch_id_${domain}` : "active_branch_id";
-    return localStorage.getItem(key) || localStorage.getItem("active_branch_id") || "";
-  });
+  // activeBranchId starts as null (not yet read from localStorage).
+  // SWR null key = skip until value is set after mount.
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Re-sync in case it was set after initial render
-    setActiveBranchId(getStoredBranchId());
+    // Read from localStorage after mount (client-side only)
+    const id = getStoredBranchId();
+    setActiveBranchId(id); // Set even if empty string — triggers SWR
 
     // Listen for branch switches across tabs (storage event)
     const handleStorageChange = () => {
@@ -123,9 +118,11 @@ export default function DashboardClient({
     queryParams += `&start_date=${localISOTime}&end_date=${localISOTime}`;
   }
 
-  // Fetch data using SWR — include activeBranchId in cache key so SWR re-fetches on branch switch
+  // Fetch data using SWR — null key skips until activeBranchId is ready after mount
   const { data, error, isLoading } = useSWR(
-    [`${apiUrl}/management/dashboard/owner?${queryParams}`, token, activeBranchId],
+    activeBranchId !== null
+      ? [`${apiUrl}/management/dashboard/owner?${queryParams}`, token, activeBranchId]
+      : null,
     fetcher,
   );
 

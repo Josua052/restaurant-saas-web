@@ -16,6 +16,13 @@ export default function MenuAvailabilityToggle({
   initialAvailable,
   token,
 }: MenuAvailabilityToggleProps) {
+  const getStoredBranchId = (): string => {
+    if (typeof window === "undefined") return "";
+    const pathParts = window.location.pathname.split("/");
+    const domain = pathParts[1] !== "dashboard" ? pathParts[1] : "";
+    const key = domain ? `active_branch_id_${domain}` : "active_branch_id";
+    return localStorage.getItem(key) || "";
+  };
   const [isAvailable, setIsAvailable] = useState(initialAvailable);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -26,13 +33,15 @@ export default function MenuAvailabilityToggle({
     setLoading(true);
 
     try {
+      const branchId = getStoredBranchId();
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/management/menus/${menuId}/availability`,
+        `${process.env.NEXT_PUBLIC_API_URL}/management/menus/${menuId}/branch-override`,
         {
-          method: "PATCH",
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            ...(branchId ? { "X-Branch-ID": branchId } : {}),
           },
           body: JSON.stringify({ is_available: checked }),
         }
