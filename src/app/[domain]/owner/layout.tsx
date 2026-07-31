@@ -21,6 +21,10 @@ export default async function OwnerLayout({
   const cookieStore = await cookies();
   const token = cookieStore.get("owner_access_token")?.value;
 
+  if (!token) {
+    redirect(`/${domain}/login`);
+  }
+
   let profileData: ProfileData = {
     restaurantName: "",
     branchAddress: "",

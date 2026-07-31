@@ -28,17 +28,10 @@ export default function StaffMenuClient({
 }) {
   const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
 
+  // Staff do not use BranchSwitcher. Their BranchID is inherently tied to their JWT token.
+  // We do not read from localStorage to avoid cross-contamination with the Owner's selected branch.
   useEffect(() => {
-    const getStoredBranchId = (): string => {
-      const pathParts = window.location.pathname.split("/");
-      const dom = pathParts[1] !== "dashboard" ? pathParts[1] : "";
-      const key = dom ? `active_branch_id_${dom}` : "active_branch_id";
-      return localStorage.getItem(key) || "";
-    };
-    setActiveBranchId(getStoredBranchId());
-    const handleStorage = () => setActiveBranchId(getStoredBranchId());
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    setActiveBranchId(""); // Triggers the SWR fetch without X-Branch-ID header, so backend uses token's branch
   }, []);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;

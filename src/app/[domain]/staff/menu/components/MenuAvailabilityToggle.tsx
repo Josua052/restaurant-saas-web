@@ -17,11 +17,7 @@ export default function MenuAvailabilityToggle({
   token,
 }: MenuAvailabilityToggleProps) {
   const getStoredBranchId = (): string => {
-    if (typeof window === "undefined") return "";
-    const pathParts = window.location.pathname.split("/");
-    const domain = pathParts[1] !== "dashboard" ? pathParts[1] : "";
-    const key = domain ? `active_branch_id_${domain}` : "active_branch_id";
-    return localStorage.getItem(key) || "";
+    return "";
   };
   const [isAvailable, setIsAvailable] = useState(initialAvailable);
   const [loading, setLoading] = useState(false);

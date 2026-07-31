@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
-import { BranchSwitcher } from "./branch-switcher";
 import UserProfileDropdown from "@/components/user-profile-dropdown";
 
 interface TopBarProps {
@@ -35,9 +34,6 @@ export function TopBar({ title }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="hidden md:block">
-          <BranchSwitcher />
-        </div>
         <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600">
           <Bell className="h-5 w-5" />
         </Button>

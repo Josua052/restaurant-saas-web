@@ -6,6 +6,7 @@ import NetworkStatus from "@/components/network-status";
 
 import { ProfileProvider, type ProfileData } from "@/providers/ProfileProvider";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -20,6 +21,10 @@ export default async function StaffLayout({
   const domain = resolvedParams.domain;
   const cookieStore = await cookies();
   const token = cookieStore.get("staff_access_token")?.value;
+
+  if (!token) {
+    redirect(`/${domain}/login`);
+  }
 
   let profileData: ProfileData = {
     restaurantName: "",
