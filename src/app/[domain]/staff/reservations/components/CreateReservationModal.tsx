@@ -2,6 +2,7 @@ import { X, Calendar as CalendarIcon, Clock, Users, Phone, User, AlertTriangle }
 import React, { useState, useEffect } from "react";
 import useSWR from "swr";
 import { toast } from "react-hot-toast";
+import { Select } from "@mantine/core";
 
 interface CreateReservationModalProps {
   isOpen: boolean;
@@ -35,6 +36,8 @@ export default function CreateReservationModal({
     reservation_time: "18:30", // Default evening time
     guest_count: 2,
     table_id: "",
+    section_id: "",
+    target_capacity: "",
     notes: "",
   });
 
@@ -55,8 +58,46 @@ export default function CreateReservationModal({
   
   const tables = tablesRes?.data || [];
   
-  // Filter tables available for the selected guest count (basic filter for UI)
-  const matchingTables = tables.filter((t: any) => t.capacity >= formData.guest_count);
+  // Fetch sections to populate area dropdown
+  const { data: sectionsRes } = useSWR(
+    isOpen ? [`${apiUrlV2}/management/sections`, token] : null,
+    ([url, t]) => fetcher(url, t)
+  );
+  const sections = sectionsRes?.data || [];
+
+  // Filter tables based on selected section (Area)
+  const areaFilteredTables = formData.section_id 
+    ? tables.filter((t: any) => t.section_id === formData.section_id)
+    : tables;
+  
+  // Filter tables available for the selected guest count
+  const matchingTables = areaFilteredTables.filter((t: any) => t.capacity >= formData.guest_count);
+  
+  // Get unique capacities in the selected area that match guest count
+  const availableCapacities = Array.from(new Set(matchingTables.map((t: any) => t.capacity))).sort((a: any, b: any) => (a as number) - (b as number));
+  
+  // Format options for Mantine Select
+  const sectionOptions = sections.map((s: any) => ({ value: s.id, label: s.name }));
+
+  const tableSelectData: any[] = [];
+  if (availableCapacities.length > 0) {
+    tableSelectData.push({
+      group: "Auto-Assign by Capacity",
+      items: availableCapacities.map((cap: any) => ({
+        value: `cap_${cap}`,
+        label: `Random ${cap}-Seat Table`
+      }))
+    });
+  }
+  if (matchingTables.length > 0) {
+    tableSelectData.push({
+      group: "Assign Specific Table",
+      items: matchingTables.map((t: any) => ({
+        value: t.id,
+        label: `${t.table_number || t.name} (Capacity: ${t.capacity})`
+      }))
+    });
+  }
   
   // Warning if selected table is too small
   const selectedTableObj = tables.find((t: any) => t.id === formData.table_id);
@@ -103,6 +144,8 @@ export default function CreateReservationModal({
           reservation_date: formData.reservation_date,
           reservation_time: formData.reservation_time,
           table_id: formData.table_id || undefined,
+          section_id: formData.section_id || undefined,
+          target_capacity: formData.target_capacity ? parseInt(formData.target_capacity) : undefined,
           notes: formData.notes,
         }),
       });
@@ -125,6 +168,8 @@ export default function CreateReservationModal({
         reservation_time: "18:30",
         guest_count: 2,
         table_id: "",
+        section_id: "",
+        target_capacity: "",
         notes: "",
       });
     } catch (err: any) {
@@ -281,40 +326,65 @@ export default function CreateReservationModal({
               </div>
             </div>
 
-            {/* Assign Table */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-1.5">
-                Assign Table (Optional)
-              </label>
-              <select
-                value={formData.table_id}
-                onChange={(e) => setFormData({...formData, table_id: e.target.value})}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900"
-              >
-                <option value="">Unassigned</option>
-                {matchingTables.map((t: any) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} (Capacity: {t.capacity})
-                  </option>
-                ))}
-                {/* Tables that don't fit the pax */}
-                {tables.filter((t: any) => t.capacity < formData.guest_count).map((t: any) => (
-                  <option key={t.id} value={t.id} disabled>
-                    {t.name} (Capacity: {t.capacity}) - Too small
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                ⓘ Showing available tables for {formData.guest_count} guests.
-              </p>
-              
-              {!formData.table_id && matchingTables.length === 0 && tables.length > 0 && (
-                <div className="mt-2 p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-2 text-amber-700">
-                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <p className="text-xs font-medium">No matching tables available — reservation will be unassigned</p>
-                </div>
-              )}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Area */}
+              <div>
+                <Select
+                  label={<span className="text-sm font-semibold text-slate-900">Area (Location)</span>}
+                  placeholder="Any Area (Unassigned)"
+                  data={sectionOptions}
+                  value={formData.section_id || null}
+                  onChange={(val) => setFormData({...formData, section_id: val || "", table_id: "", target_capacity: ""})}
+                  comboboxProps={{ withinPortal: true, zIndex: 999999 }}
+                  clearable
+                  radius="md"
+                  size="md"
+                  classNames={{
+                    input: "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20",
+                    label: "mb-1.5"
+                  }}
+                />
+              </div>
+
+              {/* Assign Table / Capacity */}
+              <div>
+                <Select
+                  label={<span className="text-sm font-semibold text-slate-900">Assign Table / Capacity</span>}
+                  placeholder="Auto-Assign (Any)"
+                  data={tableSelectData}
+                  value={formData.table_id || (formData.target_capacity ? `cap_${formData.target_capacity}` : null)}
+                  onChange={(val) => {
+                    if (!val) {
+                      setFormData({...formData, table_id: "", target_capacity: ""});
+                    } else if (val.startsWith("cap_")) {
+                      setFormData({...formData, table_id: "", target_capacity: val.replace("cap_", "")});
+                    } else {
+                      setFormData({...formData, table_id: val, target_capacity: ""});
+                    }
+                  }}
+                  comboboxProps={{ withinPortal: true, zIndex: 999999 }}
+                  clearable
+                  searchable
+                  radius="md"
+                  size="md"
+                  classNames={{
+                    input: "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20",
+                    label: "mb-1.5"
+                  }}
+                />
+              </div>
             </div>
+
+            <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+              ⓘ Showing available tables for {formData.guest_count} guests.
+            </p>
+            
+            {!formData.table_id && !formData.target_capacity && matchingTables.length === 0 && tables.length > 0 && (
+              <div className="mt-2 p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-2 text-amber-700">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <p className="text-xs font-medium">No matching tables available — reservation will be fully unassigned</p>
+              </div>
+            )}
 
             {/* Notes */}
             <div>

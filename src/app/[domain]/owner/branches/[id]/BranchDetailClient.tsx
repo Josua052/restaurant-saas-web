@@ -140,6 +140,11 @@ export default function BranchDetailClient({
   };
 
   const handleSave = async () => {
+    if (!draftData.name.trim()) {
+      toast.error("Branch Name is required");
+      return;
+    }
+
     setIsSaving(true);
     try {
       // 1. Save Branch Info

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import {
   Camera,
   AlertCircle,
   Percent,
+  Globe,
 } from "lucide-react";
 
 interface SettingsClientProps {
@@ -478,6 +479,70 @@ export default function SettingsClient({ token }: SettingsClientProps) {
                     </p>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/*  Section 2: Regional Preferences  */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-indigo-600" />
+              Regional Preferences
+            </h2>
+          </div>
+
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Currency */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                  Currency
+                </label>
+                {isEditing ? (
+                  <select
+                    value={draftData.currency}
+                    onChange={(e) => setDraftData({ ...draftData, currency: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
+                  >
+                    <option value="IDR">IDR (Indonesian Rupiah)</option>
+                    <option value="USD">USD (US Dollar)</option>
+                    <option value="EUR">EUR (Euro)</option>
+                    <option value="SGD">SGD (Singapore Dollar)</option>
+                  </select>
+                ) : (
+                  <p className="text-slate-700 font-medium">
+                    {formData.currency || "Not set"}
+                  </p>
+                )}
+              </div>
+
+              {/* Tax Rate */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                  Tax Rate (%)
+                </label>
+                {isEditing ? (
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={draftData.taxRate}
+                      onChange={(e) => setDraftData({ ...draftData, taxRate: parseFloat(e.target.value) || 0 })}
+                      className="w-full pl-4 pr-8 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 font-medium">
+                      %
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-slate-700 font-medium">
+                    {formData.taxRate}%
+                  </p>
+                )}
               </div>
             </div>
           </div>
