@@ -13,10 +13,13 @@ export async function fetchAuth(input: RequestInfo | URL, init?: RequestInit): P
     let activeBranchId = null;
     
     if (domain && domain !== 'dashboard' && domain !== 'login') {
-      activeBranchId = localStorage.getItem(`active_branch_id_${domain}`);
-    }
-    if (!activeBranchId) {
-      activeBranchId = localStorage.getItem("active_branch_id");
+      const isOwnerOrManager = currentPath.startsWith(`/${domain}/owner`) || currentPath.startsWith(`/${domain}/manager`);
+      if (isOwnerOrManager) {
+        activeBranchId = localStorage.getItem(`active_branch_id_${domain}`);
+        if (!activeBranchId) {
+          activeBranchId = localStorage.getItem("active_branch_id");
+        }
+      }
     }
 
     if (activeBranchId && !headers.has("X-Branch-ID")) {

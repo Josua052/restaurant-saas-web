@@ -166,9 +166,11 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
           <h2 className="font-bold text-indigo-700 text-lg leading-tight truncate">
             {restaurantName || "Loading..."}
           </h2>
-          <p className="text-xs text-slate-500 font-medium truncate">
-            {displayAddress}
-          </p>
+          {role !== "owner" && (
+            <p className="text-xs text-slate-500 font-medium truncate">
+              {displayAddress}
+            </p>
+          )}
         </div>
       </div>
 
