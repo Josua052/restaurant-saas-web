@@ -11,9 +11,12 @@ interface MenuListViewProps {
   tenantInfo: any;
   tableNumber: string;
   tableId: string;
+  cart: CartItem[];
   cartItemCount: number;
   cartTotal: number;
-  onAddToCart: (item: CartItem) => void;
+  onAddToCart: (item: Omit<CartItem, 'cartItemId'>) => void;
+  onUpdateCartItem: (cartItemId: string, quantity: number, notes: string) => void;
+  onRemoveCartItem: (cartItemId: string) => void;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -23,9 +26,12 @@ export default function MenuListView({
   tenantInfo,
   tableNumber,
   tableId,
+  cart,
   cartItemCount,
   cartTotal,
   onAddToCart,
+  onUpdateCartItem,
+  onRemoveCartItem
 }: MenuListViewProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch] = useDebounce(searchTerm, 300);
@@ -192,21 +198,41 @@ export default function MenuListView({
                       </p>
                     </div>
                     
-                    <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center justify-between mt-auto pt-2">
                       <span className={`font-semibold text-sm ${!isAvailable ? 'text-slate-400' : 'text-indigo-700'}`}>
                         {formatPrice(price)}
                       </span>
-                      {isAvailable && (
-                        <button 
-                          className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMenu(menu);
-                          }}
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      )}
+                      
+                      {/* Add Button / Qty Control */}
+                      <div className="relative">
+                        {isAvailable && (() => {
+                          const menuId = menu.id || menu.ID;
+                          const cartItemsForMenu = cart.filter(c => c.menuId === menuId);
+                          const totalQty = cartItemsForMenu.reduce((sum, item) => sum + item.quantity, 0);
+
+                          if (totalQty > 0) {
+                            return (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedMenu(menu); }}
+                                className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-1 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                              >
+                                <span className="w-5 h-5 flex items-center justify-center font-bold text-lg leading-none rounded-full shrink-0">-</span>
+                                <span className="font-semibold text-sm w-3 text-center">{totalQty}</span>
+                                <span className="w-5 h-5 flex items-center justify-center font-bold text-lg leading-none rounded-full shrink-0">+</span>
+                              </button>
+                            );
+                          }
+
+                          return (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedMenu(menu); }}
+                              className="w-8 h-8 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -253,6 +279,7 @@ export default function MenuListView({
       {selectedMenu && (
         <MenuDetailModal
           menu={selectedMenu}
+          cartItems={cart.filter(c => c.menuId === (selectedMenu.id || selectedMenu.ID))}
           formatPrice={formatPrice}
           onClose={() => setSelectedMenu(null)}
           onAdd={(qty, notes) => {
@@ -268,6 +295,8 @@ export default function MenuListView({
             setTimeout(() => setIsCartBouncing(false), 1000);
             setSelectedMenu(null);
           }}
+          onUpdateCartItem={onUpdateCartItem}
+          onRemoveCartItem={onRemoveCartItem}
         />
       )}
     </div>

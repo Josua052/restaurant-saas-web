@@ -5,6 +5,7 @@ import SplashView from "./SplashView";
 import MenuListView from "./MenuListView";
 
 export interface CartItem {
+  cartItemId: string; // Unique ID for this specific order variant
   menuId: string;
   name: string;
   price: number;
@@ -29,7 +30,7 @@ export default function QRMenuPublicClient({
   const [view, setView] = useState<"splash" | "menu">("splash");
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const addToCart = (item: CartItem) => {
+  const addToCart = (item: Omit<CartItem, 'cartItemId'>) => {
     setCart((prev) => {
       // If same item and notes, just increment quantity
       const existingIdx = prev.findIndex(
@@ -40,8 +41,27 @@ export default function QRMenuPublicClient({
         newCart[existingIdx].quantity += item.quantity;
         return newCart;
       }
-      return [...prev, item];
+      return [...prev, { ...item, cartItemId: Date.now().toString() + Math.random().toString(36).substr(2, 5) }];
     });
+  };
+
+  const updateCartItem = (cartItemId: string, quantity: number, notes: string) => {
+    setCart((prev) => {
+      const idx = prev.findIndex((p) => p.cartItemId === cartItemId);
+      if (idx === -1) return prev;
+      
+      const newCart = [...prev];
+      if (quantity <= 0) {
+        newCart.splice(idx, 1);
+      } else {
+        newCart[idx] = { ...newCart[idx], quantity, notes };
+      }
+      return newCart;
+    });
+  };
+
+  const removeCartItem = (cartItemId: string) => {
+    setCart((prev) => prev.filter(p => p.cartItemId !== cartItemId));
   };
 
   const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -64,9 +84,12 @@ export default function QRMenuPublicClient({
           tenantInfo={tenantInfo}
           tableNumber={tableNumber}
           tableId={tableId}
+          cart={cart}
           cartItemCount={cartItemCount}
           cartTotal={cartTotal}
           onAddToCart={addToCart}
+          onUpdateCartItem={updateCartItem}
+          onRemoveCartItem={removeCartItem}
         />
       )}
     </main>
