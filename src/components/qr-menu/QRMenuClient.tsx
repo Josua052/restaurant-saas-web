@@ -69,7 +69,7 @@ export default function QRMenuClient({
   const { data: tablesRes, isLoading } = useSWR(
     activeBranchId !== null
       ? [
-          `${apiUrl}/management/tables?${queryParams.toString()}`,
+          `${apiUrl.replace('/v1', '/v2')}/management/tables?${queryParams.toString()}`,
           token,
           activeBranchId,
         ]
@@ -80,7 +80,7 @@ export default function QRMenuClient({
   const { data: branchRes } = useSWR(
     activeBranchId !== null
       ? [
-          `${apiUrl}/management/branches/${activeBranchId}`,
+          `${apiUrl}/management/tenant/branches/${activeBranchId}`,
           token,
           activeBranchId,
         ]
@@ -88,8 +88,11 @@ export default function QRMenuClient({
     fetcherFull,
   );
 
+  const isBranchLoading = activeBranchId !== null && !branchRes;
+  const isLoadingComplete = !isLoading && !isBranchLoading;
+
   const tables: TableData[] = tablesRes?.data || [];
-  const activeBranchSlug = branchRes?.data?.slug || branchSlug; // Fallback to prop if any
+  const activeBranchSlug = branchRes?.data?.slug || branchSlug; // Should have the real slug now
 
   const handleDownloadQR = (table: TableData) => {
     const svgElement = document.getElementById(`qr-code-${table.id}`) as any;
@@ -137,7 +140,7 @@ export default function QRMenuClient({
         </div>
         </div>
     <div className="p-6 md:p-8">
-        {isLoading ? (
+        {isLoadingComplete === false ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           </div>

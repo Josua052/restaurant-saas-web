@@ -11,7 +11,7 @@ export default async function OwnerQRMenuPage({
   const cookieStore = await cookies();
   const token = cookieStore.get("owner_access_token")?.value || "";
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
-  const apiUrl = API_URL ? API_URL.replace("/v1", "/v2") : "http://localhost:8080/api/v2";
+  const apiUrl = API_URL;
 
   return (
     <QRMenuClient
