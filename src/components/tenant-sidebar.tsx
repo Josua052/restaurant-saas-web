@@ -40,13 +40,16 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
+    // Determine logout scope based on current role
+    // "staff" clears only staff cookies, "owner" clears only owner cookies
+    const logoutScope = role === "staff" || role === "cashier" ? "staff" : "owner";
     try {
       const res = await fetch("/api/auth/logout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ scope: "tenant" }),
+        body: JSON.stringify({ scope: logoutScope }),
       });
       const targetLoginUrl = domain ? `/${domain}/login` : "/login";
       if (res.ok) {

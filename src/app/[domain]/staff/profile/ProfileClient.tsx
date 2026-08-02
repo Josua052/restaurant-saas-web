@@ -20,6 +20,7 @@ export default function ProfileClient({ token }: { token?: string }) {
     fullName: "",
     email: "",
     role: "",
+    branchName: "",
   });
 
   // Draft for unsaved changes
@@ -60,6 +61,7 @@ export default function ProfileClient({ token }: { token?: string }) {
           fullName: data.name || "",
           email: data.email || "",
           role: data.role || "Staff",
+          branchName: data.branch_name || "",
         };
         setPersonalData(profile);
         setDraftPersonalData(profile);
@@ -271,37 +273,45 @@ export default function ProfileClient({ token }: { token?: string }) {
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-3">
                 Role
               </label>
-              {(() => {
-                const role = personalData.role.toLowerCase();
-                if (role === "staff") {
-                  return (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
-                      <CheckCircle className="w-3.5 h-3.5 text-blue-500" />
-                      <span className="text-[13px] font-bold text-blue-700 capitalize">
-                        {personalData.role}
-                      </span>
-                    </div>
-                  );
-                } else if (role === "cashier") {
-                  return (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full">
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="text-[13px] font-bold text-emerald-700 capitalize">
-                        {personalData.role}
-                      </span>
-                    </div>
-                  );
-                } else {
+              <div className="flex gap-2 items-center">
+                {(() => {
+                  const role = personalData.role.toLowerCase();
+                  if (role === "staff") {
+                    return (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
+                        <CheckCircle className="w-3.5 h-3.5 text-blue-500" />
+                        <span className="text-[13px] font-bold text-blue-700 capitalize">
+                          {personalData.role}
+                        </span>
+                      </div>
+                    );
+                  } else if (role === "cashier") {
+                    return (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full">
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className="text-[13px] font-bold text-emerald-700 capitalize">
+                          {personalData.role}
+                        </span>
+                      </div>
+                    );
+                  }
+                  // Fallback for Owner/Manager if they login to Staff portal
                   return (
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
-                      <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                      <Flame className="w-3.5 h-3.5 text-amber-500" />
                       <span className="text-[13px] font-bold text-amber-700 capitalize">
-                        {personalData.role || "Owner"}
+                        {personalData.role}
                       </span>
                     </div>
                   );
-                }
-              })()}
+                })()}
+                
+                {personalData.branchName && (
+                  <span className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[13px] font-bold rounded-full border border-indigo-200 shadow-sm flex items-center h-full">
+                    {personalData.branchName}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

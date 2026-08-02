@@ -39,9 +39,16 @@ export async function fetchAuth(input: RequestInfo | URL, init?: RequestInit): P
   if (response.status === 401) {
     try {
       // Determine scope based on URL path
-      const scope = typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard') 
-        ? "admin" 
-        : "tenant";
+      const currentPath = window.location.pathname;
+      let scope = "tenant";
+      if (currentPath.startsWith('/dashboard')) {
+        scope = "admin";
+      } else if (currentPath.includes('/staff')) {
+        scope = "staff";
+      } else {
+        scope = "owner";
+      }
+      const portal = scope; // alias for refresh route compatibility
 
       // Attempt to refresh the token using our internal API route
       const refreshResponse = await fetch("/api/auth/refresh", {
@@ -49,7 +56,7 @@ export async function fetchAuth(input: RequestInfo | URL, init?: RequestInit): P
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ scope }),
+        body: JSON.stringify({ scope, portal }),
       });
 
       if (refreshResponse.ok) {

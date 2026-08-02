@@ -54,17 +54,23 @@ export async function POST(request: Request) {
     );
 
     // Clear cookies based on scope
+    // IMPORTANT: Only clear the tokens belonging to the logging-out role.
+    // Deleting all tokens at once would force-logout any other role logged in on another tab.
     if (scope === "admin") {
       cookieStore.delete("admin_access_token");
       cookieStore.delete("admin_refresh_token");
+    } else if (scope === "staff") {
+      // Staff/Cashier logout — only clear staff tokens
+      cookieStore.delete("staff_access_token");
+      cookieStore.delete("staff_refresh_token");
     } else {
-      // Clear both owner and staff tokens to ensure a clean logout
+      // Owner/Manager logout — only clear owner tokens
+      // Do NOT touch staff_access_token/staff_refresh_token — a Staff user
+      // may still be logged in on another tab.
       cookieStore.delete("access_token"); // legacy
       cookieStore.delete("refresh_token"); // legacy
       cookieStore.delete("owner_access_token");
       cookieStore.delete("owner_refresh_token");
-      cookieStore.delete("staff_access_token");
-      cookieStore.delete("staff_refresh_token");
     }
 
     return response;

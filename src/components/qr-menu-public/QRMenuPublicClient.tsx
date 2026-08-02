@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SplashView from "./SplashView";
 import MenuListView from "./MenuListView";
 import CheckoutView from "./CheckoutView";
@@ -34,6 +34,28 @@ export default function QRMenuPublicClient({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
+
+  useEffect(() => {
+    const savedOrderId = localStorage.getItem(`activeOrderId_${tableId}`);
+    if (savedOrderId) {
+      fetch(`${apiUrl}/public/orders/${savedOrderId}?branch_id=${tenantInfo.branch_id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.data) {
+            // Check if order is still active (status == 1)
+            if (data.data.status === 1) {
+              setCurrentOrder(data.data);
+              setView("status");
+            } else {
+              localStorage.removeItem(`activeOrderId_${tableId}`);
+            }
+          } else {
+            localStorage.removeItem(`activeOrderId_${tableId}`);
+          }
+        })
+        .catch((err) => console.error("Failed to restore order:", err));
+    }
+  }, [apiUrl, tableId, tenantInfo.branch_id]);
 
   const addToCart = (item: Omit<CartItem, 'cartItemId'>) => {
     setCart((prev) => {
@@ -84,7 +106,7 @@ export default function QRMenuPublicClient({
         }))
       };
 
-      const res = await fetch(`${apiUrl}/v2/public/orders/qr`, {
+      const res = await fetch(`${apiUrl}/public/orders/qr`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -95,6 +117,7 @@ export default function QRMenuPublicClient({
       const data = await res.json();
       if (res.ok) {
         setCurrentOrder(data.data);
+        localStorage.setItem(`activeOrderId_${tableId}`, data.data.id);
         setCart([]); // Kosongkan keranjang
         setView("status");
       } else {
