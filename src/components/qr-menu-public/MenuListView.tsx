@@ -17,6 +17,9 @@ interface MenuListViewProps {
   onAddToCart: (item: Omit<CartItem, 'cartItemId'>) => void;
   onUpdateCartItem: (cartItemId: string, quantity: number, notes: string) => void;
   onRemoveCartItem: (cartItemId: string) => void;
+  onNavigateCheckout: () => void;
+  onNavigateStatus: () => void;
+  hasActiveOrder: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -31,7 +34,10 @@ export default function MenuListView({
   cartTotal,
   onAddToCart,
   onUpdateCartItem,
-  onRemoveCartItem
+  onRemoveCartItem,
+  onNavigateCheckout,
+  onNavigateStatus,
+  hasActiveOrder
 }: MenuListViewProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch] = useDebounce(searchTerm, 300);
@@ -245,7 +251,10 @@ export default function MenuListView({
       {/* Floating Cart Summary */}
       {cartItemCount > 0 && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-[500px] px-4 z-30">
-          <div className="bg-indigo-700 rounded-2xl p-4 flex items-center justify-between text-white shadow-lg shadow-indigo-200/50 cursor-pointer hover:bg-indigo-800 transition-colors">
+          <div 
+            onClick={onNavigateCheckout}
+            className="bg-indigo-700 rounded-2xl p-4 flex items-center justify-between text-white shadow-lg shadow-indigo-200/50 cursor-pointer hover:bg-indigo-800 transition-colors"
+          >
             <div className="flex flex-col">
               <span className="text-xs text-indigo-200 font-medium">{cartItemCount} item</span>
               <span className="font-bold">{formatPrice(cartTotal)}</span>
@@ -269,9 +278,15 @@ export default function MenuListView({
           <Utensils className="w-5 h-5" />
           <span className="text-[10px] font-semibold">Menu</span>
         </button>
-        <button className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors">
+        <button 
+          onClick={hasActiveOrder ? onNavigateStatus : undefined}
+          className={`flex flex-col items-center gap-1 transition-colors relative ${hasActiveOrder ? 'text-indigo-700 hover:text-indigo-800 cursor-pointer' : 'text-slate-400 hover:text-slate-600 cursor-default'}`}
+        >
           <Check className="w-5 h-5" />
           <span className="text-[10px] font-medium">Pesanan</span>
+          {hasActiveOrder && (
+            <span className="absolute top-0 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+          )}
         </button>
       </div>
 
