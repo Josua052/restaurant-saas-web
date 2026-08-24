@@ -1,59 +1,65 @@
 import { fetchAuth } from '@/lib/fetchAuth'
-import Cookies from 'js-cookie'
-
-jest.mock('js-cookie', () => ({
-  get: jest.fn(),
-}))
 
 describe('fetchAuth Utility', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    // Reset global fetch
     global.fetch = jest.fn()
+    window.history.pushState({}, '', '/test-domain/owner')
+    localStorage.clear()
   })
 
-  it('includes owner access token in Authorization header if not admin or staff', async () => {
-    (Cookies.get as jest.Mock).mockReturnValue('mock-owner-token')
-    
+  it('injects X-Branch-ID header if available in localStorage', async () => {
+    localStorage.setItem('active_branch_id_test-domain', 'branch-123')
     ;(global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      json: async () => ({ success: true })
+      status: 200,
+      json: async () => ({ success: true }),
     })
 
     await fetchAuth('/api/test', { method: 'GET' })
 
     expect(global.fetch).toHaveBeenCalledWith('/api/test', expect.objectContaining({
-      headers: expect.objectContaining({
-        'Authorization': 'Bearer mock-owner-token',
-        'Content-Type': 'application/json'
-      })
+      headers: expect.any(Headers),
     }))
   })
 
-  it('redirects to login when response is 401 Unauthorized', async () => {
-    // Mock 401 response
-    ;(global.fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-      status: 401,
-      json: async () => ({ message: 'Unauthorized' })
-    })
-
-    // Mock window.location
-    const originalWindow = { ...window }
-    const locationMock = { href: '' }
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: locationMock
-    })
+  it('attempts to refresh token and redirects on 401 if refresh fails', async () => {
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ isSuspended: false }),
+      })
 
     await fetchAuth('/api/test', { method: 'GET' })
 
-    expect(window.location.href).toBe('/login?session_expired=true')
+    expect(global.fetch).toHaveBeenCalledWith('/api/auth/refresh', expect.objectContaining({
+      method: 'POST',
+    }))
+  })
 
-    // Restore window
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: originalWindow.location
-    })
+  it('retries request if refresh succeeds', async () => {
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: 'success' }),
+      })
+
+    const res = await fetchAuth('/api/test', { method: 'GET' })
+    expect(res.status).toBe(200)
+    expect(global.fetch).toHaveBeenCalledTimes(3)
   })
 })

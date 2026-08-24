@@ -21,6 +21,7 @@ import { Toaster } from "sonner";
 import { MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
 import { DemoWatermark } from "@/components/DemoWatermark";
+import { DemoBanner } from "@/components/DemoBanner";
 
 export default function RootLayout({
   children,
@@ -35,6 +36,7 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning={true} className="min-h-full flex flex-col">
         <MantineProvider>
+          <DemoBanner />
           <DemoWatermark />
           {children}
           <Toaster position="bottom-right" richColors />

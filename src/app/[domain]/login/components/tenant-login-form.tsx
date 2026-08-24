@@ -18,6 +18,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { IconCrown, IconChefHat } from "@tabler/icons-react";
+
 interface TenantLoginFormProps {
   domain: string;
 }
@@ -109,6 +111,14 @@ useEffect(() => {
     }
   };
 
+  const handleQuickDemo = async (roleType: "owner" | "staff") => {
+    const demoEmail = `${roleType}@${domain || "resto"}.com`;
+    const demoPassword = roleType === "owner" ? "Owner1234" : "Staff1234";
+    setValue("email", demoEmail);
+    setValue("password", demoPassword);
+    await onSubmit({ email: demoEmail, password: demoPassword });
+  };
+
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -169,25 +179,23 @@ useEffect(() => {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => {
-              setValue("email", `owner@${domain || "resto"}.com`);
-              setValue("password", "Owner1234");
-            }}
-            className="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+            disabled={isLoading}
+            onClick={() => handleQuickDemo("owner")}
+            className="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 flex items-center justify-center gap-1.5"
           >
-            👑 Owner Demo
+            <IconCrown className="w-4 h-4 text-amber-500 shrink-0 stroke-[2]" />
+            <span>Owner Demo</span>
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => {
-              setValue("email", `staff@${domain || "resto"}.com`);
-              setValue("password", "Staff1234");
-            }}
-            className="text-xs text-slate-600 hover:text-slate-700 hover:bg-slate-50 border-slate-200"
+            disabled={isLoading}
+            onClick={() => handleQuickDemo("staff")}
+            className="text-xs text-slate-600 hover:text-slate-700 hover:bg-slate-50 border-slate-200 flex items-center justify-center gap-1.5"
           >
-            🧑‍🍳 Staff Demo
+            <IconChefHat className="w-4 h-4 text-indigo-600 shrink-0 stroke-[2]" />
+            <span>Staff Demo</span>
           </Button>
         </div>
       </form>

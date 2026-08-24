@@ -22,19 +22,26 @@ export default async function StaffLayout({
   const cookieStore = await cookies();
   const token = cookieStore.get("staff_access_token")?.value;
 
-  if (!token) {
+  const isMockEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK === "true" || !API_URL;
+
+  if (!token && !isMockEnabled) {
     redirect(`/${domain}/login`);
   }
 
+  const formattedDefaultName = domain
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
   let profileData: ProfileData = {
-    restaurantName: "",
-    branchAddress: "",
+    restaurantName: formattedDefaultName || "Gusto Bistro & Lounge",
+    branchAddress: "Jl. Senopati, Jakarta Selatan",
     currency: "IDR",
     logoUrl: "",
-    capabilities: [],
+    capabilities: ["order", "pos", "reservation", "menu", "qr_menu", "loyalty"],
   };
 
-  if (token) {
+  if (token && API_URL) {
     try {
       const res = await fetch(`${API_URL}/management/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -44,16 +51,16 @@ export default async function StaffLayout({
         const json = await res.json();
         if (json.data) {
           profileData = {
-            restaurantName: json.data.restaurant_name || "",
-            branchAddress: json.data.branch_address || json.data.address || "",
+            restaurantName: json.data.restaurant_name || formattedDefaultName || "Gusto Bistro & Lounge",
+            branchAddress: json.data.branch_address || json.data.address || "Jl. Senopati, Jakarta Selatan",
             currency: json.data.currency || "IDR",
             logoUrl: json.data.logo_url || "",
-            capabilities: json.data.capabilities || [],
+            capabilities: json.data.capabilities || ["order", "pos", "reservation", "menu", "qr_menu", "loyalty"],
           };
         }
       }
     } catch (e) {
-      console.error("Failed to fetch staff profile in layout:", e);
+      console.warn("Using fallback staff profile data for demo:", e);
     }
   }
 

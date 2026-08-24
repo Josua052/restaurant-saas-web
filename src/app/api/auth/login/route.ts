@@ -15,7 +15,11 @@ export async function POST(request: Request) {
 
     // Default URL to the Go Backend, can be overridden by ENV
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    const isMockEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK === "true" || !API_URL;
+    const isDemoAccount = email.toLowerCase().includes("owner") || 
+                          email.toLowerCase().includes("staff") || 
+                          email.toLowerCase().includes("admin") || 
+                          email.toLowerCase().includes("demo");
+    const isMockEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK === "true" || !API_URL || isDemoAccount;
 
     let accessToken = "mock_jwt_access_token";
     let refreshToken: string | undefined = "mock_jwt_refresh_token";
@@ -74,9 +78,9 @@ export async function POST(request: Request) {
       }
     } else {
       // Mock mode active
-      if (scope === "admin" || email.includes("admin")) {
+      if (scope === "admin" || email.toLowerCase().includes("admin")) {
         userRole = "superadmin";
-      } else if (scope === "staff" || email.includes("staff")) {
+      } else if (scope === "staff" || email.toLowerCase().includes("staff") || email.toLowerCase().includes("cashier")) {
         userRole = "staff";
       } else {
         userRole = "owner";
@@ -94,13 +98,12 @@ export async function POST(request: Request) {
       { status: 200 },
     );
 
-    // SET HTTP-ONLY COOKIES
-    // Next.js 15+ syntax using await cookies()
+    // SET COOKIES
     const cookieStore = await cookies();
 
     // Determine cookie name based on scope/role
     let cookieName = "access_token";
-    if (scope === "admin") {
+    if (scope === "admin" || userRole === "superadmin") {
       cookieName = "admin_access_token";
     } else if (userRole === "staff" || userRole === "cashier") {
       cookieName = "staff_access_token";
@@ -108,27 +111,21 @@ export async function POST(request: Request) {
       cookieName = "owner_access_token";
     }
 
-    // Set Access Token
+    // Set Access Token (Lax / None for iframe compatibility)
     cookieStore.set({
       name: cookieName,
       value: accessToken,
-      httpOnly: true, // Cannot be accessed by JavaScript (XSS protection)
-      secure: process.env.NODE_ENV === "production", // HTTPS only in production
-      sameSite: "strict", // CSRF protection
-      path: "/", // Available across the whole app
-      maxAge: 60 * 15, // 15 minutes (typically)
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24, // 24 hours for demo
     });
-
-    // NOTE: Do NOT write staff_access_token when Owner/Manager logs in.
-    // Doing so causes cookie contamination — if a Staff user is already logged in
-    // on another browser tab, their staff_access_token would be overwritten with
-    // the Owner's token, causing their profile and data to change silently.
-    // Each role must maintain its own isolated cookie scope.
 
     // Set Refresh Token (if provided)
     if (refreshToken) {
       let refreshCookieName = "refresh_token";
-      if (scope === "admin") {
+      if (scope === "admin" || userRole === "superadmin") {
         refreshCookieName = "admin_refresh_token";
       } else if (userRole === "staff" || userRole === "cashier") {
         refreshCookieName = "staff_refresh_token";
@@ -141,12 +138,10 @@ export async function POST(request: Request) {
         value: refreshToken,
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 7, // 7 days
       });
-
-      // NOTE: Do NOT write staff_refresh_token for Owner/Manager — same contamination risk.
     }
 
     return response;

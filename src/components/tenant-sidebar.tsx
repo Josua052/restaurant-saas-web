@@ -4,19 +4,19 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  CalendarCheck,
-  Utensils,
-  Users,
-  Settings,
-  LogOut,
-  ChefHat,
-  ClipboardList,
-  Armchair,
-  Gift,
-  QrCode,
-  Store,
-} from "lucide-react";
+  IconLayoutDashboard,
+  IconCalendarCheck,
+  IconToolsKitchen2,
+  IconUsers,
+  IconSettings,
+  IconLogout,
+  IconChefHat,
+  IconClipboardList,
+  IconArmchair,
+  IconGift,
+  IconQrcode,
+  IconBuildingStore,
+} from "@tabler/icons-react";
 import { useProfile } from "@/providers/ProfileProvider";
 import { BranchSwitcher } from "@/components/layout/branch-switcher";
 
@@ -29,7 +29,7 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
   const params = useParams();
   const router = useRouter();
   const domain = (params?.domain as string) || "";
-  const { restaurantName, branchAddress, logoUrl, capabilities = [] } = useProfile();
+  const { restaurantName, branchAddress, logoUrl } = useProfile();
   const [activeBranchAddr, setActiveBranchAddr] = useState<string>("");
 
   useEffect(() => {
@@ -40,8 +40,6 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
-    // Determine logout scope based on current role
-    // "staff" clears only staff cookies, "owner" clears only owner cookies
     const logoutScope = role === "staff" || role === "cashier" ? "staff" : "owner";
     try {
       const res = await fetch("/api/auth/logout", {
@@ -65,11 +63,9 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
 
   // Helper to check if a route is active
   const isActive = (path: string) => {
-    // If the path is exactly "/{domain}/owner" or "/{domain}/staff", check for exact match
     if (path === basePath) {
       return pathname === basePath || pathname === `${basePath}/`;
     }
-    // Otherwise check if pathname starts with the path
     return pathname.startsWith(path);
   };
 
@@ -82,56 +78,37 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
     category: NavCategory;
   }
 
+  // Aktifkan semua menu secara penuh untuk demo portofolio
   const navItems: NavItem[] = [
-    { name: "Dashboard", href: basePath, icon: LayoutDashboard, category: "Operasional" },
+    { name: "Dashboard", href: basePath, icon: IconLayoutDashboard, category: "Operasional" },
   ];
 
-  if (role === "staff") {
-    if (capabilities.includes("order")) {
-      navItems.push(
-        { name: "Orders", href: `${basePath}/orders`, icon: ClipboardList, category: "Operasional" },
-        { name: "Kitchen", href: `${basePath}/kitchen`, icon: ChefHat, category: "Operasional" }
-      );
-    }
+  if (role === "staff" || role === "cashier") {
+    navItems.push(
+      { name: "Orders", href: `${basePath}/orders`, icon: IconClipboardList, category: "Operasional" },
+      { name: "Kitchen", href: `${basePath}/kitchen`, icon: IconChefHat, category: "Operasional" }
+    );
   }
 
-  if (capabilities.includes("pos") || capabilities.includes("order")) {
-    navItems.push({ name: "Tables", href: `${basePath}/tables`, icon: Armchair, category: "Operasional" });
-  }
-
-  if (capabilities.includes("reservation")) {
-    navItems.push({
-      name: "Reservations",
-      href: `${basePath}/reservations`,
-      icon: CalendarCheck,
-      category: "Operasional",
-    });
-  }
-
-  if (capabilities.includes("menu")) {
-    navItems.push({ name: "Menu", href: `${basePath}/menu`, icon: Utensils, category: "Operasional" });
-  }
-
-  if (capabilities.includes("qr_menu")) {
-    navItems.push({ name: "QR Menu", href: `${basePath}/qr-menu`, icon: QrCode, category: "Operasional" });
-  }
-
-  if (capabilities.includes("loyalty")) {
-    navItems.push({ name: "Loyalty", href: `${basePath}/loyalty`, icon: Gift, category: "Operasional" });
-  }
+  navItems.push(
+    { name: "Tables", href: `${basePath}/tables`, icon: IconArmchair, category: "Operasional" },
+    { name: "Reservations", href: `${basePath}/reservations`, icon: IconCalendarCheck, category: "Operasional" },
+    { name: "Menu", href: `${basePath}/menu`, icon: IconToolsKitchen2, category: "Operasional" },
+    { name: "QR Menu", href: `${basePath}/qr-menu`, icon: IconQrcode, category: "Operasional" }
+  );
 
   if (role === "owner") {
     navItems.push(
       {
         name: "Employees",
         href: `${basePath}/employees`,
-        icon: Users,
+        icon: IconUsers,
         category: "Manajemen",
       },
       {
         name: "Branches",
         href: `${basePath}/branches`,
-        icon: Store,
+        icon: IconBuildingStore,
         category: "Manajemen",
       }
     );
@@ -232,7 +209,7 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
             }`}
           >
-            <Settings
+            <IconSettings
               className={`w-5 h-5 shrink-0 ${isActive(`${basePath}/settings`) ? "text-white" : "text-slate-500"}`}
             />
             <span className="truncate">Settings</span>
@@ -242,7 +219,7 @@ export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl font-medium transition-colors w-full text-left"
         >
-          <LogOut className="w-5 h-5 shrink-0" />
+          <IconLogout className="w-5 h-5 shrink-0" />
           <span className="truncate">Logout</span>
         </button>
       </div>

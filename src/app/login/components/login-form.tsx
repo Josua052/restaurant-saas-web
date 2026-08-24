@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+import { IconBolt } from "@tabler/icons-react";
+
 export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -176,9 +178,10 @@ export function LoginForm() {
               setValue("email", "admin@saas-restaurant.com");
               setValue("password", "Admin1234");
             }}
-            className="w-full text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+            className="w-full text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 flex items-center justify-center gap-1.5"
           >
-            ⚡ Auto-Fill Akun Demo
+            <IconBolt className="w-4 h-4 text-amber-500 shrink-0 stroke-[2]" />
+            <span>Auto-Fill Akun Demo</span>
           </Button>
         </div>
       </form>
