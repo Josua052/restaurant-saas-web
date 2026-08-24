@@ -40,17 +40,35 @@ export default function MenuDetailClient({ token }: MenuDetailClientProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  useEffect(() => {
-    fetchMenu();
-  }, [menuId]);
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
 
-  const fetchMenu = async () => {
+  useEffect(() => {
+    const getStoredBranchId = (): string => {
+      const pathParts = window.location.pathname.split("/");
+      const dom = pathParts[1] !== "dashboard" ? pathParts[1] : "";
+      const key = dom ? `active_branch_id_${dom}` : "active_branch_id";
+      return localStorage.getItem(key) || "";
+    };
+    setActiveBranchId(getStoredBranchId());
+  }, []);
+
+  useEffect(() => {
+    if (activeBranchId !== null) {
+      fetchMenuDetail();
+    }
+  }, [menuId, activeBranchId]);
+
+  const fetchMenuDetail = async () => {
     try {
+      const headers: any = {
+        Authorization: `Bearer ${token}`,
+      };
+      if (activeBranchId) {
+        headers["X-Branch-ID"] = activeBranchId;
+      }
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/management/menus/${menuId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        { headers }
       );
       if (res.ok) {
         const data = await res.json();
@@ -119,23 +137,25 @@ export default function MenuDetailClient({ token }: MenuDetailClientProps) {
 
   return (
     <div className="w-full space-y-6">
-      {/* Breadcrumbs */}
-      <nav className="flex items-center text-sm text-slate-500 font-medium">
-        <Link
-          href={`/${domain}/owner/menu`}
-          className="hover:text-slate-900 flex items-center gap-1.5 transition-colors"
-        >
-          <UtensilsCrossed className="w-4 h-4" />
-          Menu
-        </Link>
-        <ChevronRight className="w-4 h-4 mx-2" />
-        <span className="text-slate-700">{menu.category}</span>
-        <ChevronRight className="w-4 h-4 mx-2" />
-        <span className="text-slate-900 font-bold">{menu.name}</span>
-      </nav>
+      <div className="sticky top-0 z-30 w-full bg-white border-b border-slate-200 shadow-sm flex flex-col gap-4 px-6 md:px-8 py-6">
+        {/* Breadcrumbs */}
+        <nav className="flex items-center text-sm text-slate-500 font-medium">
+          <Link
+            href={`/${domain}/owner/menu`}
+            className="hover:text-slate-900 flex items-center gap-1.5 transition-colors"
+          >
+            <UtensilsCrossed className="w-4 h-4" />
+            Menu
+          </Link>
+          <ChevronRight className="w-4 h-4 mx-2" />
+          <span className="text-slate-700">{menu.category}</span>
+          <ChevronRight className="w-4 h-4 mx-2" />
+          <span className="text-slate-900 font-bold">{menu.name}</span>
+        </nav>
+      </div>
 
       {/* Main Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8 flex flex-col md:flex-row gap-8 items-start">
+      <div className="bg-white border border-slate-200 shadow-sm p-6 sm:p-8 flex flex-col md:flex-row gap-8 items-start">
         {/* Image Section */}
         <div className="w-full md:w-[320px] shrink-0">
           <div className="aspect-square relative rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
@@ -229,7 +249,7 @@ export default function MenuDetailClient({ token }: MenuDetailClientProps) {
       </div>
 
       {/* Description Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
             Description

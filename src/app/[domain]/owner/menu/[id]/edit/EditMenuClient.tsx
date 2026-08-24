@@ -93,16 +93,35 @@ export default function EditMenuClient({ token }: EditMenuClientProps) {
     return temp_path;
   };
 
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getStoredBranchId = (): string => {
+      const pathParts = window.location.pathname.split("/");
+      const dom = pathParts[1] !== "dashboard" ? pathParts[1] : "";
+      const key = dom ? `active_branch_id_${dom}` : "active_branch_id";
+      return localStorage.getItem(key) || "";
+    };
+    setActiveBranchId(getStoredBranchId());
+  }, []);
+
   useEffect(() => {
     fetchData();
-  }, [menuId]);
+  }, [menuId, activeBranchId]);
 
   const fetchData = async () => {
     try {
+      const headers: any = {
+        Authorization: `Bearer ${token}`,
+      };
+      if (activeBranchId) {
+        headers["X-Branch-ID"] = activeBranchId;
+      }
+
       // 1. Fetch Categories
       const catRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/management/menus/categories`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers },
       );
       if (catRes.ok) {
         const catData = await catRes.json();
@@ -112,7 +131,7 @@ export default function EditMenuClient({ token }: EditMenuClientProps) {
       // 2. Fetch Menu Detail
       const menuRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/management/menus/${menuId}`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers },
       );
       if (menuRes.ok) {
         const menuData = await menuRes.json();
@@ -174,14 +193,19 @@ export default function EditMenuClient({ token }: EditMenuClientProps) {
         temp_image_path: tempImagePath,
       };
 
+      const headers: any = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+      if (activeBranchId) {
+        headers["X-Branch-ID"] = activeBranchId;
+      }
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/management/menus/${menuId}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
           body: JSON.stringify(payload),
         },
       );

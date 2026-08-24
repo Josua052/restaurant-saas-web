@@ -21,6 +21,7 @@ export function LoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -164,11 +165,27 @@ export function LoginForm() {
             </span>
           )}
         </Button>
+
+        {/* Quick Demo Fill */}
+        <div className="pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setValue("email", "admin@saas-restaurant.com");
+              setValue("password", "Admin1234");
+            }}
+            className="w-full text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+          >
+            ⚡ Auto-Fill Akun Demo
+          </Button>
+        </div>
       </form>
 
       {/* Footer */}
       <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-        <p className="text-xs text-slate-400">Secure internal system access only.</p>
+        <p className="text-xs text-slate-400">Mode Demo Portofolio Aktif</p>
       </div>
     </div>
   );

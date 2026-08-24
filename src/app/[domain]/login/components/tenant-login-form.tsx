@@ -29,13 +29,15 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuspendedModal, setShowSuspendedModal] = useState(false);
 
-  useEffect(() => {
-    // Check if redirected due to suspension
+useEffect(() => {
     if (typeof window !== "undefined") {
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.get("suspended") === "true") {
-        setShowSuspendedModal(true);
-        // Optional: clean up URL
+        
+        setTimeout(() => {
+          setShowSuspendedModal(true);
+        }, 0);
+
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
@@ -44,6 +46,7 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -66,6 +69,7 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
         body: JSON.stringify({
           email: data.email,
           password: data.password,
+          domain: domain,
         }),
       });
 
@@ -87,11 +91,16 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
 
       // Route the user to their specific tenant dashboard based on role
       const userRole = result.role?.toLowerCase() || "owner";
+      const isOnboarded = result.is_onboarded;
       
       if (userRole === "staff" || userRole === "cashier") {
         router.push(`/${domain}/staff`);
       } else {
-        router.push(`/${domain}/owner`);
+        if (isOnboarded === false) {
+          router.push(`/${domain}/onboarding`);
+        } else {
+          router.push(`/${domain}/owner`);
+        }
       }
     } catch (err) {
       console.error("Login failed:", err);
@@ -103,13 +112,6 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {error && (
-          <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-600 py-3 mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="ml-2">{error}</AlertDescription>
-          </Alert>
-        )}
-
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium text-slate-700">Email Address</Label>
           <div className="relative">
@@ -160,6 +162,34 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
         >
           {isLoading ? "Signing in..." : "Sign In"}
         </Button>
+
+        {/* Demo Mode Quick Fill Buttons */}
+        <div className="pt-2 grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setValue("email", `owner@${domain || "resto"}.com`);
+              setValue("password", "Owner1234");
+            }}
+            className="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+          >
+            👑 Owner Demo
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setValue("email", `staff@${domain || "resto"}.com`);
+              setValue("password", "Staff1234");
+            }}
+            className="text-xs text-slate-600 hover:text-slate-700 hover:bg-slate-50 border-slate-200"
+          >
+            🧑‍🍳 Staff Demo
+          </Button>
+        </div>
       </form>
 
       <Dialog open={showSuspendedModal} onOpenChange={setShowSuspendedModal}>
@@ -184,6 +214,30 @@ export function TenantLoginForm({ domain }: TenantLoginFormProps) {
               className="bg-slate-900 hover:bg-slate-800 text-white w-full sm:w-auto px-8"
             >
               Understood
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!error} onOpenChange={(open) => !open && setError(null)}>
+        <DialogContent className="sm:max-w-md text-center border-t-4 border-t-red-500">
+          <DialogHeader>
+            <div className="mx-auto bg-red-50 w-16 h-16 flex items-center justify-center rounded-full mb-4">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-slate-900 text-center">
+              Login Failed
+            </DialogTitle>
+          </DialogHeader>
+          <DialogDescription className="text-base text-slate-600 text-center pt-2">
+            {error}
+          </DialogDescription>
+          <div className="flex justify-center mt-6">
+            <Button 
+              onClick={() => setError(null)}
+              className="bg-slate-900 hover:bg-slate-800 text-white w-full sm:w-auto px-8"
+            >
+              Try Again
             </Button>
           </div>
         </DialogContent>

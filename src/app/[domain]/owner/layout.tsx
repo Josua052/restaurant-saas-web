@@ -21,11 +21,16 @@ export default async function OwnerLayout({
   const cookieStore = await cookies();
   const token = cookieStore.get("owner_access_token")?.value;
 
+  if (!token) {
+    redirect(`/${domain}/login`);
+  }
+
   let profileData: ProfileData = {
     restaurantName: "",
     branchAddress: "",
     currency: "IDR",
     logoUrl: "",
+    capabilities: [],
   };
 
   let shouldRedirectToStaff = false;
@@ -47,9 +52,10 @@ export default async function OwnerLayout({
 
           profileData = {
             restaurantName: json.data.restaurant_name || "",
-            branchAddress: json.data.branch_address || "",
+            branchAddress: json.data.branch_address || json.data.address || "",
             currency: json.data.currency || "IDR",
             logoUrl: json.data.logo_url || "",
+            capabilities: json.data.capabilities || [],
           };
         }
       }
@@ -100,7 +106,7 @@ export default async function OwnerLayout({
           </header>
 
           {/* Page Content */}
-          <div className="flex-1 p-8 overflow-y-auto" suppressHydrationWarning>
+          <div className="flex-1 overflow-y-auto" suppressHydrationWarning>
             {children}
           </div>
         </main>

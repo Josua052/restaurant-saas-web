@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pencil, Save, Lock, Eye, EyeOff, Flame, Loader2, CheckCircle } from "lucide-react";
+import {
+  Pencil,
+  Save,
+  Lock,
+  Eye,
+  EyeOff,
+  Flame,
+  Loader2,
+  CheckCircle,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function ProfileClient({ token }: { token?: string }) {
@@ -124,7 +133,7 @@ export default function ProfileClient({ token }: { token?: string }) {
       alert("New password and confirmation do not match!");
       return;
     }
-    
+
     if (!token) return;
     setIsSavingPassword(true);
     try {
@@ -170,7 +179,7 @@ export default function ProfileClient({ token }: { token?: string }) {
   }
 
   return (
-    <div suppressHydrationWarning className="w-full space-y-8">
+    <div suppressHydrationWarning className="w-full p-8 space-y-8">
       {/* Header Area */}
       <div className="pb-4">
         <h1 className="text-[28px] font-bold text-slate-900 tracking-tight">
@@ -400,7 +409,9 @@ export default function ProfileClient({ token }: { token?: string }) {
                     : "bg-slate-200 text-slate-400 cursor-not-allowed"
                 }`}
               >
-                {isSavingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isSavingPassword && (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                )}
                 {isSavingPassword ? "Changing..." : "Change Password"}
               </button>
             </div>
@@ -411,10 +422,15 @@ export default function ProfileClient({ token }: { token?: string }) {
       {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
+          <div
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() => setShowConfirmModal(false)}
+          ></div>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm relative z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Confirm Update</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                Confirm Update
+              </h3>
               <p className="text-slate-500 text-sm">
                 Are you sure you want to update your profile information?
               </p>

@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, scope = "tenant" } = body;
+    const { email, password, scope = "tenant", domain } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -15,49 +15,72 @@ export async function POST(request: Request) {
 
     // Default URL to the Go Backend, can be overridden by ENV
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const isMockEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK === "true" || !API_URL;
 
-    // Forward the request to the Go backend
-    const backendResponse = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password, portal: scope }),
-    });
+    let accessToken = "mock_jwt_access_token";
+    let refreshToken: string | undefined = "mock_jwt_refresh_token";
+    let userRole = scope === "admin" ? "superadmin" : "owner";
+    let isOnboarded = true;
 
-    const data = await backendResponse.json();
+    if (!isMockEnabled) {
+      try {
+        // Forward the request to the Go backend
+        const backendResponse = await fetch(`${API_URL}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password, portal: scope, domain }),
+        });
 
-    // If backend returns an error (401, 400, etc)
-    if (!backendResponse.ok || !data.success) {
-      return NextResponse.json(data, { status: backendResponse.status });
-    }
+        const data = await backendResponse.json();
 
-    // Login Success: Extract tokens from backend data
-    const accessToken = data.data?.access_token;
-    const refreshToken = data.data?.refresh_token;
+        // If backend returns an error (401, 400, etc)
+        if (!backendResponse.ok || !data.success) {
+          return NextResponse.json(data, { status: backendResponse.status });
+        }
 
-    if (!accessToken) {
-      return NextResponse.json(
-        { success: false, message: "Invalid response from server" },
-        { status: 500 },
-      );
-    }
-    
-    // Extract role by fetching the user profile from the backend
-    let userRole = "owner";
-    try {
-      const profileRes = await fetch(`${API_URL}/management/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        cache: "no-store",
-      });
-      if (profileRes.ok) {
-        const profileData = await profileRes.json();
-        userRole = profileData.data?.role?.toLowerCase() || "owner";
+        // Login Success: Extract tokens from backend data
+        accessToken = data.data?.access_token;
+        refreshToken = data.data?.refresh_token;
+
+        if (!accessToken) {
+          return NextResponse.json(
+            { success: false, message: "Invalid response from server" },
+            { status: 500 },
+          );
+        }
+
+        // Extract role by fetching the user profile from the backend
+        try {
+          const profileRes = await fetch(`${API_URL}/management/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+            cache: "no-store",
+          });
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            userRole = profileData.data?.role?.toLowerCase() || "owner";
+            if (profileData.data?.is_onboarded !== undefined) {
+              isOnboarded = profileData.data.is_onboarded;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch profile during login:", err);
+        }
+      } catch (err) {
+        console.warn("Backend unavailable, falling back to demo mode:", err);
       }
-    } catch (err) {
-      console.error("Failed to fetch profile during login:", err);
+    } else {
+      // Mock mode active
+      if (scope === "admin" || email.includes("admin")) {
+        userRole = "superadmin";
+      } else if (scope === "staff" || email.includes("staff")) {
+        userRole = "staff";
+      } else {
+        userRole = "owner";
+      }
     }
 
     // Prepare response to send back to client
@@ -66,6 +89,7 @@ export async function POST(request: Request) {
         success: true,
         message: "Login successful",
         role: userRole,
+        is_onboarded: isOnboarded,
       },
       { status: 200 },
     );
@@ -95,6 +119,12 @@ export async function POST(request: Request) {
       maxAge: 60 * 15, // 15 minutes (typically)
     });
 
+    // NOTE: Do NOT write staff_access_token when Owner/Manager logs in.
+    // Doing so causes cookie contamination — if a Staff user is already logged in
+    // on another browser tab, their staff_access_token would be overwritten with
+    // the Owner's token, causing their profile and data to change silently.
+    // Each role must maintain its own isolated cookie scope.
+
     // Set Refresh Token (if provided)
     if (refreshToken) {
       let refreshCookieName = "refresh_token";
@@ -115,6 +145,8 @@ export async function POST(request: Request) {
         path: "/",
         maxAge: 60 * 60 * 24 * 7, // 7 days
       });
+
+      // NOTE: Do NOT write staff_refresh_token for Owner/Manager — same contamination risk.
     }
 
     return response;

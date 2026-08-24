@@ -14,6 +14,9 @@ import {
   User,
   Info,
   Users,
+  CreditCard,
+  Calendar,
+  CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +37,28 @@ export default function CreateTenantPage() {
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [initialPassword, setInitialPassword] = useState("");
+
+  const [subscriptionTier, setSubscriptionTier] = useState("Basic");
+  const [subscriptionValidUntil, setSubscriptionValidUntil] = useState("");
+  const [maxBranches, setMaxBranches] = useState(1);
+  const [capabilities, setCapabilities] = useState<string[]>(["pos", "menu", "order"]);
+
+  useEffect(() => {
+    switch (subscriptionTier) {
+      case "Basic":
+        setMaxBranches(1);
+        setCapabilities(["pos", "menu", "order"]);
+        break;
+      case "Pro":
+        setMaxBranches(3);
+        setCapabilities(["pos", "menu", "order", "reservation", "inventory", "qr_menu"]);
+        break;
+      case "Enterprise":
+        setMaxBranches(10);
+        setCapabilities(["pos", "menu", "order", "reservation", "inventory", "analytics", "website", "qr_menu", "multi_branch", "loyalty"]);
+        break;
+    }
+  }, [subscriptionTier]);
 
   const [emailTouched, setEmailTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
@@ -77,6 +102,10 @@ export default function CreateTenantPage() {
           owner_name: ownerName,
           owner_email: ownerEmail,
           owner_password: initialPassword,
+          subscription_tier: subscriptionTier,
+          subscription_valid_until: subscriptionValidUntil,
+          max_branches: maxBranches,
+          capabilities: capabilities,
         }),
       });
 
@@ -355,6 +384,111 @@ export default function CreateTenantPage() {
                     </div>
                   </div>
                 </section>
+
+                <hr className="border-slate-200" />
+
+                {/* Subscription & Limits */}
+                <section>
+                  <div className="flex items-center gap-2.5 mb-6">
+                    <CreditCard className="h-5 w-5 text-indigo-600" />
+                    <h2 className="text-[17px] font-semibold text-slate-900">
+                      Subscription & Limits
+                    </h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div className="space-y-2.5">
+                      <label htmlFor="subscriptionTier" className="text-[13px] font-semibold text-slate-700 block">
+                        Tier
+                      </label>
+                      <select
+                        id="subscriptionTier"
+                        value={subscriptionTier}
+                        onChange={(e) => setSubscriptionTier(e.target.value)}
+                        className="flex h-11 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="Basic">Basic</option>
+                        <option value="Pro">Pro</option>
+                        <option value="Enterprise">Enterprise</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <label htmlFor="subscriptionValidUntil" className="text-[13px] font-semibold text-slate-700 block">
+                        Valid Until
+                      </label>
+                      <div className="relative">
+                        <Input
+                          id="subscriptionValidUntil"
+                          type="date"
+                          value={subscriptionValidUntil}
+                          onChange={(e) => setSubscriptionValidUntil(e.target.value)}
+                          className="h-11 pl-10 text-base md:text-sm font-medium border-slate-200 focus-visible:ring-indigo-500"
+                        />
+                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <label htmlFor="maxBranches" className="text-[13px] font-semibold text-slate-700 block">
+                        Max Branches Allowed
+                      </label>
+                      <Input
+                        id="maxBranches"
+                        type="number"
+                        min="1"
+                        value={maxBranches}
+                        onChange={(e) => setMaxBranches(parseInt(e.target.value) || 1)}
+                        className="h-11 text-base md:text-sm font-medium border-slate-200 focus-visible:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[13px] font-semibold text-slate-700 block flex items-center gap-2">
+                      <CheckSquare className="h-4 w-4 text-slate-500" /> Active Modules
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        { id: "pos", label: "Point of Sale" },
+                        { id: "menu", label: "Menu Management" },
+                        { id: "order", label: "Order Tracking" },
+                        { id: "reservation", label: "Reservations" },
+                        { id: "inventory", label: "Inventory" },
+                        { id: "analytics", label: "Analytics" },
+                        { id: "website", label: "Mini Website" },
+                        { id: "qr_menu", label: "QR Menu" },
+                        { id: "multi_branch", label: "Multi Branch" },
+                        { id: "loyalty", label: "Loyalty Program" },
+                      ].map((mod) => (
+                        <label
+                          key={mod.id}
+                          className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
+                            capabilities.includes(mod.id)
+                              ? "bg-indigo-50/50 border-indigo-200"
+                              : "bg-white border-slate-200 hover:bg-slate-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={capabilities.includes(mod.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setCapabilities([...capabilities, mod.id]);
+                              } else {
+                                setCapabilities(capabilities.filter((c) => c !== mod.id));
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+                          />
+                          <span className="text-[13px] font-medium text-slate-700">
+                            {mod.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </section>
               </div>
 
               {/* Form Footer */}
@@ -444,6 +578,14 @@ export default function CreateTenantPage() {
                 </span>
                 <span className="text-slate-900 font-medium text-right truncate">
                   {ownerEmail}
+                </span>
+              </div>
+              <div className="grid grid-cols-[140px_1fr] items-center p-3.5 border-b border-slate-200 text-[13px]">
+                <span className="font-semibold text-slate-500 text-[11px] tracking-wider uppercase">
+                  Subscription Tier
+                </span>
+                <span className="text-slate-900 font-medium text-right">
+                  {subscriptionTier} (Max {maxBranches} Branch{maxBranches > 1 ? "es" : ""})
                 </span>
               </div>
               <div className="grid grid-cols-[140px_1fr] items-center p-3.5 text-[13px]">
