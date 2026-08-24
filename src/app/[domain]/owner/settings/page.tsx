@@ -1,0 +1,9 @@
+import { cookies } from "next/headers";
+import SettingsClient from "./SettingsClient";
+
+export default async function SettingsPage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("owner_access_token")?.value || "";
+
+  return <SettingsClient token={token} />;
+}
