@@ -105,11 +105,12 @@ export default async function middleware(req: NextRequest) {
   }
 
   // 3. Domain & Tenant Routing Logic
-  const allowedRootDomains = ["namawebsite.com", "localhost", "127.0.0.1"];
+  const allowedRootDomains = ["namawebsite.com", "localhost", "127.0.0.1", "0.0.0.0"];
   const isLocalIP = domain.startsWith("192.168.");
+  const isVercelDomain = domain.endsWith(".vercel.app") || domain.includes("vercel.app");
   
-  // If it's the root application domain
-  if (allowedRootDomains.includes(domain) || isLocalIP) {
+  // If it's the root application domain (including Vercel deployments)
+  if (allowedRootDomains.includes(domain) || isLocalIP || isVercelDomain) {
     // Redirect root to login
     if (url.pathname === "/") {
       return NextResponse.redirect(new URL("/login", req.url));

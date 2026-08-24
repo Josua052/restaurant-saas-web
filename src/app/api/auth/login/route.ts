@@ -15,53 +15,72 @@ export async function POST(request: Request) {
 
     // Default URL to the Go Backend, can be overridden by ENV
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const isMockEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK === "true" || !API_URL;
 
-    // Forward the request to the Go backend
-    const backendResponse = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password, portal: scope, domain }),
-    });
+    let accessToken = "mock_jwt_access_token";
+    let refreshToken: string | undefined = "mock_jwt_refresh_token";
+    let userRole = scope === "admin" ? "superadmin" : "owner";
+    let isOnboarded = true;
 
-    const data = await backendResponse.json();
+    if (!isMockEnabled) {
+      try {
+        // Forward the request to the Go backend
+        const backendResponse = await fetch(`${API_URL}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password, portal: scope, domain }),
+        });
 
-    // If backend returns an error (401, 400, etc)
-    if (!backendResponse.ok || !data.success) {
-      return NextResponse.json(data, { status: backendResponse.status });
-    }
+        const data = await backendResponse.json();
 
-    // Login Success: Extract tokens from backend data
-    const accessToken = data.data?.access_token;
-    const refreshToken = data.data?.refresh_token;
-
-    if (!accessToken) {
-      return NextResponse.json(
-        { success: false, message: "Invalid response from server" },
-        { status: 500 },
-      );
-    }
-    
-    // Extract role by fetching the user profile from the backend
-    let userRole = "owner";
-    let isOnboarded = true; // default true for backward compatibility
-    try {
-      const profileRes = await fetch(`${API_URL}/management/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        cache: "no-store",
-      });
-      if (profileRes.ok) {
-        const profileData = await profileRes.json();
-        userRole = profileData.data?.role?.toLowerCase() || "owner";
-        if (profileData.data?.is_onboarded !== undefined) {
-          isOnboarded = profileData.data.is_onboarded;
+        // If backend returns an error (401, 400, etc)
+        if (!backendResponse.ok || !data.success) {
+          return NextResponse.json(data, { status: backendResponse.status });
         }
+
+        // Login Success: Extract tokens from backend data
+        accessToken = data.data?.access_token;
+        refreshToken = data.data?.refresh_token;
+
+        if (!accessToken) {
+          return NextResponse.json(
+            { success: false, message: "Invalid response from server" },
+            { status: 500 },
+          );
+        }
+
+        // Extract role by fetching the user profile from the backend
+        try {
+          const profileRes = await fetch(`${API_URL}/management/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+            cache: "no-store",
+          });
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            userRole = profileData.data?.role?.toLowerCase() || "owner";
+            if (profileData.data?.is_onboarded !== undefined) {
+              isOnboarded = profileData.data.is_onboarded;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch profile during login:", err);
+        }
+      } catch (err) {
+        console.warn("Backend unavailable, falling back to demo mode:", err);
       }
-    } catch (err) {
-      console.error("Failed to fetch profile during login:", err);
+    } else {
+      // Mock mode active
+      if (scope === "admin" || email.includes("admin")) {
+        userRole = "superadmin";
+      } else if (scope === "staff" || email.includes("staff")) {
+        userRole = "staff";
+      } else {
+        userRole = "owner";
+      }
     }
 
     // Prepare response to send back to client

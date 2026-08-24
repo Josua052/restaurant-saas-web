@@ -46,6 +46,7 @@ useEffect(() => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -161,6 +162,34 @@ useEffect(() => {
         >
           {isLoading ? "Signing in..." : "Sign In"}
         </Button>
+
+        {/* Demo Mode Quick Fill Buttons */}
+        <div className="pt-2 grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setValue("email", `owner@${domain || "resto"}.com`);
+              setValue("password", "Owner1234");
+            }}
+            className="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+          >
+            👑 Owner Demo
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setValue("email", `staff@${domain || "resto"}.com`);
+              setValue("password", "Staff1234");
+            }}
+            className="text-xs text-slate-600 hover:text-slate-700 hover:bg-slate-50 border-slate-200"
+          >
+            🧑‍🍳 Staff Demo
+          </Button>
+        </div>
       </form>
 
       <Dialog open={showSuspendedModal} onOpenChange={setShowSuspendedModal}>

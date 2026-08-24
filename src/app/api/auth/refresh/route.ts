@@ -31,54 +31,53 @@ export async function POST(request: Request) {
     }
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    if (!API_URL) {
-      return NextResponse.json(
-        { success: false, message: "API URL not configured" },
-        { status: 500 }
-      );
-    }
+    const isMockEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK === "true" || !API_URL;
 
-    const backendResponse = await fetch(`${API_URL}/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
+    let newAccessToken = "mock_jwt_access_token";
+    let newRefreshToken = "mock_jwt_refresh_token";
 
-    const data = await backendResponse.json();
+    if (!isMockEnabled) {
+      const backendResponse = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
 
-    if (!backendResponse.ok || !data.success) {
-      // If refresh fails, we probably should clear cookies so the user has to login again
-      if (scope === "admin" || portal === "admin") {
-        cookieStore.delete("admin_access_token");
-        cookieStore.delete("admin_refresh_token");
-      } else {
-        cookieStore.delete("access_token"); // legacy
-        cookieStore.delete("refresh_token"); // legacy
-        cookieStore.delete("owner_access_token");
-        cookieStore.delete("owner_refresh_token");
-        cookieStore.delete("staff_access_token");
-        cookieStore.delete("staff_refresh_token");
+      const data = await backendResponse.json();
+
+      if (!backendResponse.ok || !data.success) {
+        // If refresh fails, we probably should clear cookies so the user has to login again
+        if (scope === "admin" || portal === "admin") {
+          cookieStore.delete("admin_access_token");
+          cookieStore.delete("admin_refresh_token");
+        } else {
+          cookieStore.delete("access_token"); // legacy
+          cookieStore.delete("refresh_token"); // legacy
+          cookieStore.delete("owner_access_token");
+          cookieStore.delete("owner_refresh_token");
+          cookieStore.delete("staff_access_token");
+          cookieStore.delete("staff_refresh_token");
+        }
+
+        // Check if the error indicates a suspended account
+        const errorMsg = (data.message || data.errors?.detail || "").toLowerCase();
+        const isSuspended = errorMsg.includes("suspended");
+
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: isSuspended ? "Account suspended" : "Session expired, please login again",
+            isSuspended 
+          },
+          { status: 401 }
+        );
       }
 
-      // Check if the error indicates a suspended account
-      const errorMsg = (data.message || data.errors?.detail || "").toLowerCase();
-      const isSuspended = errorMsg.includes("suspended");
-
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: isSuspended ? "Account suspended" : "Session expired, please login again",
-          isSuspended 
-        },
-        { status: 401 }
-      );
+      newAccessToken = data.data?.access_token;
+      newRefreshToken = data.data?.refresh_token;
     }
-
-    // Success! Update cookies
-    const newAccessToken = data.data?.access_token;
-    const newRefreshToken = data.data?.refresh_token;
 
     if (!newAccessToken) {
       return NextResponse.json(

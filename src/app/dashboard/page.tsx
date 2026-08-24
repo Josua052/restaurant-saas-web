@@ -47,53 +47,62 @@ interface DashboardStatsResponse {
   recent_tenants: TenantDetailResponse[];
 }
 
+import { mockSuperAdminProfile, mockSuperAdminStats } from "@/lib/mockData";
+
 export default async function DashboardPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_access_token")?.value;
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const isMockEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK === "true" || !API_URL;
 
   let stats: DashboardStatsResponse | null = null;
   let fetchError = null;
   let adminName = "Admin";
 
   if (token) {
-    try {
-      // Fetch admin profile to get name
-      const profileRes = await fetch(`${API_URL}/superadmin/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-      });
+    if (isMockEnabled) {
+      stats = mockSuperAdminStats;
+      adminName = mockSuperAdminProfile.name;
+    } else {
+      try {
+        // Fetch admin profile to get name
+        const profileRes = await fetch(`${API_URL}/superadmin/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
 
-      if (profileRes.ok) {
-        const profileJson = await profileRes.json();
-        adminName = profileJson.data?.name || profileJson.data?.Name || "Admin";
+        if (profileRes.ok) {
+          const profileJson = await profileRes.json();
+          adminName = profileJson.data?.name || profileJson.data?.Name || "Admin";
+        }
+
+        // Using cache: "no-store" to ensure real-time data freshness
+        const res = await fetch(`${API_URL}/superadmin/dashboard/stats`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+
+        if (res.status === 401) {
+          redirect("/login");
+        }
+
+        if (res.ok) {
+          const json = await res.json();
+          stats = json.data;
+        } else {
+          // Fallback to mock data if backend errors
+          stats = mockSuperAdminStats;
+        }
+      } catch (error) {
+        console.warn("Dashboard Stats Fetch Fallback to Mock:", error);
+        stats = mockSuperAdminStats;
+        adminName = mockSuperAdminProfile.name;
       }
-
-      // Using cache: "no-store" to ensure real-time data freshness
-      const res = await fetch(`${API_URL}/superadmin/dashboard/stats`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-      });
-
-      if (res.status === 401) {
-        redirect("/login");
-      }
-
-      if (res.ok) {
-        const json = await res.json();
-        stats = json.data;
-      } else {
-        const errJson = await res.json();
-        fetchError = errJson.message || "Failed to fetch stats";
-      }
-    } catch (error) {
-      console.error("Dashboard Stats Fetch Error:", error);
-      fetchError = "Network error. Make sure the backend is running.";
     }
   } else {
     redirect("/login");

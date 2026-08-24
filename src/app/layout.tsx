@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 import { Toaster } from "sonner";
 import { MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
+import { DemoWatermark } from "@/components/DemoWatermark";
 
 export default function RootLayout({
   children,
@@ -34,6 +35,7 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning={true} className="min-h-full flex flex-col">
         <MantineProvider>
+          <DemoWatermark />
           {children}
           <Toaster position="bottom-right" richColors />
         </MantineProvider>
