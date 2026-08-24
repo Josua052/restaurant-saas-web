@@ -21,7 +21,7 @@ import { useProfile } from "@/providers/ProfileProvider";
 import { BranchSwitcher } from "@/components/layout/branch-switcher";
 
 interface TenantSidebarProps {
-  role?: "owner" | "staff";
+  role?: "owner" | "staff" | "cashier";
 }
 
 export default function TenantSidebar({ role = "owner" }: TenantSidebarProps) {

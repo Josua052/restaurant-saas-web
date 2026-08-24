@@ -111,9 +111,9 @@ export default async function middleware(req: NextRequest) {
   
   // If it's the root application domain (including Vercel deployments)
   if (allowedRootDomains.includes(domain) || isLocalIP || isVercelDomain) {
-    // Redirect root to login
+    // Redirect root to tenant portal in demo/portfolio preview
     if (url.pathname === "/") {
-      return NextResponse.redirect(new URL("/login", req.url));
+      return NextResponse.redirect(new URL("/gusto-bistro/login", req.url));
     }
     return NextResponse.next();
   }

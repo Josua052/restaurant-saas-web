@@ -154,7 +154,7 @@ export default function StaffMenuClient({
 
         {/* Menu Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
-          {menuItems.map((item) => (
+          {menuItems.map((item: any) => (
             <div
               key={item.ID}
               className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all"

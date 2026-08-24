@@ -1,12 +1,13 @@
 import { ReactNode } from "react";
 
-export default function TenantLayout({
+export default async function TenantLayout({
   children,
   params,
 }: {
   children: ReactNode;
-  params: { domain: string };
+  params: Promise<{ domain: string }>;
 }) {
+  await params;
   // In a real app, you would fetch tenant settings (colors, logo) from DB based on params.domain
   // For now, we'll just provide a clean wrapper.
   

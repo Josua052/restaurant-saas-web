@@ -29,10 +29,15 @@ export default async function TenantLoginPage({
     console.error("Failed to fetch public tenant info:", err);
   }
 
-  // Extract initial for fallback
-  const initial = restaurantName
-    ? restaurantName.charAt(0).toUpperCase()
-    : domain.charAt(0).toUpperCase();
+  // Extract and format fallback restaurant name
+  const formattedDefaultName = domain
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+  const displayName = restaurantName === domain ? formattedDefaultName : restaurantName;
+
+  const initial = displayName ? displayName.charAt(0).toUpperCase() : "R";
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-slate-50">
@@ -42,7 +47,7 @@ export default async function TenantLoginPage({
             <div className="h-auto w-16 rounded-xl flex items-center justify-center overflow-hidden ">
               <img
                 src={logoUrl}
-                alt={`${restaurantName} Logo`}
+                alt={`${displayName} Logo`}
                 className="h-full w-full object-cover"
               />
             </div>
@@ -52,7 +57,7 @@ export default async function TenantLoginPage({
             </div>
           )}
           <h1 className="text-2xl font-bold text-slate-900 text-center">
-            Welcome to {restaurantName}
+            Welcome to {displayName}
           </h1>
           <p className="text-sm text-slate-500 text-center">
             Sign in to your account to continue

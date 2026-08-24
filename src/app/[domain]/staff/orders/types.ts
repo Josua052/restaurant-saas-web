@@ -27,6 +27,7 @@ export interface TableResponseDTO {
   section_id: string;
   section?: TableSection;
   active_res?: { guest_name: string; time: string };
+  active_reservation?: { guest_name?: string; time?: string };
 }
 
 export interface CartItem {
